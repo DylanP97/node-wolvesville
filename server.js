@@ -43,8 +43,29 @@ const io = socketIO(server, {
   },
 });
 
+// Maintain a global state for rooms on the server
+const rooms = [];
+
 io.on("connection", (socket) => {
   console.log("A user connected " + socket.id);
+
+  socket.on("createRoom", (newRoom) => {
+    // Handle the creation of a new room, e.g., store it in an array or database
+    console.log("New room created:", newRoom);
+    rooms.push(newRoom);
+    io.emit("updateRooms", rooms); // Broadcast the new room to all clients
+  });
+
+  socket.on("joinRoom", (roomId) => {
+    // Handle the join room logic, e.g., check if the room exists
+    const roomToJoin = rooms.find((room) => room.id === roomId);
+    if (roomToJoin) {
+      // You may want to broadcast this information to other clients
+      // io.emit("userJoinedRoom", { roomId, userId: socket.id });
+    } else {
+      // Handle the case where the room does not exist
+    }
+  });
 
   socket.on("chat message", (msg) => {
     console.log("Message: " + msg);

@@ -41,33 +41,3 @@ app.get("/", async (req, res) => {
 app.use("/api/user", userRoutes);
 
 module.exports = app;
-
-//--------------------------------
-
-// const io = new Server(server, {
-//   cors: {
-//     origin: process.env.CLIENT_URL,
-//     methods: ["GET", "POST"],
-//   },
-// });
-
-// io.on("connection", (socket) => {
-//   console.log(`User Connected: ${socket.id}`);
-
-//   socket.emit("your_id", { id: socket.id });
-
-//   socket.on("message", (data) => {
-//     console.log(data);
-//     io.emit("message", { id: socket.id, content: data.content });
-//   });
-
-//   socket.on("disconnect", () => {
-//     console.log(`User Disconnected: ${socket.id}`);
-//   });
-// });
-
-// const PORT = process.env.PORT || 3001;
-
-// server.listen(PORT, () => {
-//   console.log(`SERVER IS RUNNING ON PORT ${PORT}`);
-// });
