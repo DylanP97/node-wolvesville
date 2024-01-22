@@ -53,22 +53,21 @@ io.on("connection", (socket) => {
     connectedUsers.push(user);
     console.log(user.username + " est connecté !")
     io.emit("updateUsers", connectedUsers);
-    console.log(connectedUsers)
+    io.emit("updateRooms", rooms);
   })
 
   socket.on("createRoom", (newRoom) => {
-    console.log("New room created:", newRoom);
     rooms.push(newRoom);
     io.emit("updateRooms", rooms);
   });
 
-  socket.on("joinRoom", (roomId) => {
+  socket.on("joinRoom", (roomId, userJoining) => {
     const roomToJoin = rooms.find((room) => room.id === roomId);
     if (roomToJoin) {
-      // You may want to broadcast this information to other clients
-      // io.emit("userJoinedRoom", { roomId, userId: socket.id });
+      roomToJoin.usersInTheRoom.push(userJoining)
+      io.emit("updateRooms", rooms);
     } else {
-      // Handle the case where the room does not exist
+      console.log("the room doesn't exist")
     }
   });
 
