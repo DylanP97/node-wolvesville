@@ -44,9 +44,17 @@ const io = socketIO(server, {
 });
 
 let rooms = [];
+let connectedUsers = [];
 
 io.on("connection", (socket) => {
   console.log("A user connected " + socket.id);
+  
+  socket.on("sendNewConnectedUser", (user) => {    
+    connectedUsers.push(user);
+    console.log(user.username + " est connecté !")
+    io.emit("updateUsers", connectedUsers);
+    console.log(connectedUsers)
+  })
 
   socket.on("createRoom", (newRoom) => {
     console.log("New room created:", newRoom);
@@ -71,7 +79,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    let user = connectedUsers.indexOf(connectedUsers.find(user => user.socketId == socket.id))
     console.log("User disconnected " + socket.id);
+    console.log("User " + user.username);
+    connectedUsers.splice((user), 1);
+    io.emit("updateUsers", connectedUsers);
   });
 });
 
