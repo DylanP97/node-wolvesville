@@ -1,7 +1,6 @@
 const http = require("http");
 const app = require("./index");
 const socketIO = require("socket.io");
-const mongoose = require("mongoose");
 
 const normalizePort = (val) => {
   const port = parseInt(val, 10);
@@ -49,8 +48,8 @@ let connectedUsers = [];
 
 io.on("connection", (socket) => {
   console.log("A user connected " + socket.id);
-  
-  socket.on("sendNewConnectedUser", (user) => {    
+
+  socket.on("sendNewConnectedUser", (user) => {
     connectedUsers.push(user);
     console.log(user.username + " est connecté !")
     io.emit("updateUsers", connectedUsers);
@@ -60,6 +59,14 @@ io.on("connection", (socket) => {
   socket.on("createRoom", (newRoom) => {
     rooms.push(newRoom);
     io.emit("updateRooms", rooms);
+    let userIndex = connectedUsers.findIndex((usr) => usr.username === newRoom.createdBy);
+    if (userIndex !== -1) {
+      connectedUsers[userIndex] = {
+        ...connectedUsers[userIndex],
+        isInRoom: newRoom.id
+      }
+    }
+    io.emit("updateUsers", connectedUsers, newRoom.id);
   });
 
   socket.on("joinRoom", (roomId, userJoining) => {
@@ -67,10 +74,37 @@ io.on("connection", (socket) => {
     if (roomToJoin) {
       roomToJoin.usersInTheRoom.push(userJoining)
       io.emit("updateRooms", rooms);
+      let userIndex = connectedUsers.findIndex((usr) => usr.id === userJoining.id);
+      if (userIndex !== -1) {
+        connectedUsers[userIndex] = {
+          ...connectedUsers[userIndex],
+          isInRoom: roomId
+        }
+      }
+      io.emit("updateUsers", connectedUsers, roomId);
     } else {
       console.log("the room doesn't exist")
     }
   });
+
+  socket.on("launchRoom", (roomId) => {
+    let roomIndex = rooms.findIndex((room) => room.id == roomId);
+    if (roomIndex !== -1) {
+      rooms[roomIndex] = {
+        ...rooms[roomIndex],
+        isLaunched: true,
+      };
+      io.emit("updateRooms", rooms);
+    } else {
+      console.log("the room doesn't exist")
+    }
+  });
+
+  socket.on("deleteRoom", (roomId) => {
+    updatedRooms = rooms.filter((room) => room.id !== roomId)
+    rooms = updatedRooms;
+    io.emit("updateRooms", rooms);
+  })
 
   socket.on("chat message", (msg) => {
     console.log("Message: " + msg);
@@ -87,26 +121,11 @@ io.on("connection", (socket) => {
   });
 });
 
-mongoose.set("strictQuery", false);
+server.on("error", errorHandler);
+server.on("listening", () => {
+  const address = server.address();
+  const bind = typeof address === "string" ? "pipe " + address : "port " + port;
+  console.log("Listening on " + bind);
+});
 
-mongoose
-  .connect(process.env.MONGODB_URL, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => {
-    console.log("Connexion à MongoDB réussie !")
-    server.on("error", errorHandler);
-    server.on("listening", () => {
-      const address = server.address();
-      const bind = typeof address === "string" ? "pipe " + address : "port " + port;
-      console.log("Listening on " + bind);
-    });
-    server.listen(port);
-  })
-  .catch(() => {
-    console.log("Connexion à MongoDB échouée !")
-    process.exit(1);
-  });
-
-
+server.listen(port);
