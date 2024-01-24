@@ -1,6 +1,7 @@
 const http = require("http");
 const app = require("./index");
 const socketIO = require("socket.io");
+const mongoose = require("mongoose");
 
 const normalizePort = (val) => {
   const port = parseInt(val, 10);
@@ -86,11 +87,26 @@ io.on("connection", (socket) => {
   });
 });
 
-server.on("error", errorHandler);
-server.on("listening", () => {
-  const address = server.address();
-  const bind = typeof address === "string" ? "pipe " + address : "port " + port;
-  console.log("Listening on " + bind);
-});
+mongoose.set("strictQuery", false);
 
-server.listen(port);
+mongoose
+  .connect(process.env.MONGODB_URL, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log("Connexion à MongoDB réussie !")
+    server.on("error", errorHandler);
+    server.on("listening", () => {
+      const address = server.address();
+      const bind = typeof address === "string" ? "pipe " + address : "port " + port;
+      console.log("Listening on " + bind);
+    });
+    server.listen(port);
+  })
+  .catch(() => {
+    console.log("Connexion à MongoDB échouée !")
+    process.exit(1);
+  });
+
+
