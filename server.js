@@ -47,11 +47,9 @@ let rooms = [];
 let connectedUsers = [];
 
 io.on("connection", (socket) => {
-  console.log("A user connected " + socket.id);
-
   socket.on("sendNewConnectedUser", (user) => {
     connectedUsers.push(user);
-    console.log(user.username + " est connecté !")
+    console.log("A user connected " + socket.id + " " + user.username)
     io.emit("updateUsers", connectedUsers);
     io.emit("updateRooms", rooms);
   })
@@ -71,12 +69,13 @@ io.on("connection", (socket) => {
   });
 
   socket.on("joinRoom", (roomId, userJoining) => {
-    const roomToJoin = rooms.find((room) => room.id === roomId);
+    let roomToJoin = rooms.find((room) => room.id === roomId);
     if (roomToJoin) {
       roomToJoin.usersInTheRoom.push(userJoining)
       io.emit("updateRooms", rooms);
       let userIndex = connectedUsers.findIndex((usr) => usr.id === userJoining.id);
       if (userIndex !== -1) {
+        console.log(connectedUsers[userIndex].username)
         connectedUsers[userIndex] = {
           ...connectedUsers[userIndex],
           isInRoom: roomId
@@ -84,7 +83,9 @@ io.on("connection", (socket) => {
       }
       io.emit("updateUsers", connectedUsers);
       socket.join(roomId)
-      io.to(roomId).emit('launchRoom');
+      if (roomToJoin.usersInTheRoom.length == roomToJoin.nbrOfPlayers) {
+        io.to(roomId).emit('launchRoom');
+      }
     } else {
       console.log("the room doesn't exist")
     }
@@ -105,7 +106,6 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     let user = connectedUsers.indexOf(connectedUsers.find(user => user.socketId == socket.id))
     console.log("User disconnected " + socket.id);
-    console.log("User " + user.username);
     connectedUsers.splice((user), 1);
     io.emit("updateUsers", connectedUsers);
   });
