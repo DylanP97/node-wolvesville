@@ -66,7 +66,8 @@ io.on("connection", (socket) => {
         isInRoom: newRoom.id
       }
     }
-    io.emit("updateUsers", connectedUsers, newRoom.id);
+    io.emit("updateUsers", connectedUsers);
+    socket.join(newRoom.id)
   });
 
   socket.on("joinRoom", (roomId, userJoining) => {
@@ -81,20 +82,9 @@ io.on("connection", (socket) => {
           isInRoom: roomId
         }
       }
-      io.emit("updateUsers", connectedUsers, roomId);
-    } else {
-      console.log("the room doesn't exist")
-    }
-  });
-
-  socket.on("launchRoom", (roomId) => {
-    let roomIndex = rooms.findIndex((room) => room.id == roomId);
-    if (roomIndex !== -1) {
-      rooms[roomIndex] = {
-        ...rooms[roomIndex],
-        isLaunched: true,
-      };
-      io.emit("updateRooms", rooms);
+      io.emit("updateUsers", connectedUsers);
+      socket.join(roomId)
+      io.to(roomId).emit('launchRoom');
     } else {
       console.log("the room doesn't exist")
     }
