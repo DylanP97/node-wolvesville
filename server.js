@@ -100,7 +100,7 @@ io.on("connection", (socket) => {
           winningTeam: null,
         };
         io.emit("updateRooms", rooms);
-        io.to(roomId).emit('launchRoom', roomToJoin);
+        io.to(roomId).emit('launchRoom', roomToJoin.id);
       }
     } else {
       console.log("the room doesn't exist")
@@ -111,15 +111,6 @@ io.on("connection", (socket) => {
     updatedRooms = rooms.filter((room) => room.id !== roomId)
     rooms = updatedRooms;
     io.emit("updateRooms", rooms);
-  })
-
-  socket.on("initializeGame", (playersList, roomId) => {
-    let room = rooms.find((room) => room.id === roomId);
-    if (room) {
-      room,
-      playersList
-    }
-    io.emit("updateRooms", rooms)
   })
 
   socket.on("chat message", (msg) => {
