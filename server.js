@@ -1,6 +1,7 @@
 const http = require("http");
 const app = require("./index");
 const socketIO = require("socket.io");
+const { initializePlayersList } = require("./gameEvents");
 
 const normalizePort = (val) => {
   const port = parseInt(val, 10);
@@ -73,18 +74,33 @@ io.on("connection", (socket) => {
     if (roomToJoin) {
       roomToJoin.usersInTheRoom.push(userJoining)
       io.emit("updateRooms", rooms);
-      let userIndex = connectedUsers.findIndex((usr) => usr.id === userJoining.id);
+      let userIndex = connectedUsers.findIndex((usr) => usr.username === userJoining.username);
       if (userIndex !== -1) {
-        console.log(connectedUsers[userIndex].username)
         connectedUsers[userIndex] = {
           ...connectedUsers[userIndex],
           isInRoom: roomId
         }
       }
       io.emit("updateUsers", connectedUsers);
-      socket.join(roomId)
+      socket.join(roomId);
       if (roomToJoin.usersInTheRoom.length == roomToJoin.nbrOfPlayers) {
-        io.to(roomId).emit('launchRoom');
+        const playersList = initializePlayersList(
+          roomToJoin.nbrOfPlayers,
+          roomToJoin.selectedRoles,
+          roomToJoin.usersInTheRoom
+        );
+        roomToJoin = {
+          ...roomToJoin,
+          playersList: playersList,
+          timeOfTheDay: "nighttime",
+          dayCount: 0,
+          aliveList: null, 
+          playerToPlay: playersList[0],
+          registeredActions: [], 
+          winningTeam: null,
+        };
+        io.emit("updateRooms", rooms);
+        io.to(roomId).emit('launchRoom', roomToJoin);
       }
     } else {
       console.log("the room doesn't exist")
@@ -95,6 +111,15 @@ io.on("connection", (socket) => {
     updatedRooms = rooms.filter((room) => room.id !== roomId)
     rooms = updatedRooms;
     io.emit("updateRooms", rooms);
+  })
+
+  socket.on("initializeGame", (playersList, roomId) => {
+    let room = rooms.find((room) => room.id === roomId);
+    if (room) {
+      room,
+      playersList
+    }
+    io.emit("updateRooms", rooms)
   })
 
   socket.on("chat message", (msg) => {
