@@ -1,38 +1,38 @@
 
 // village
-import villager from "./villager.png";
-import gossip from "./gossip.png";
-import jailer from "./jailer.png";
-import gunner from "./gunner.png";
-import grumpyGrandma from "./grumpy-grandma.png";
-import priest from "./priest.png";
-import graveRobber from "./grave-robber.png";
-import doctor from "./doctor.png";
-import mayor from "./mayor.png";
-import sheriff from "./sheriff.png";
-import detective from "./detective.png";
-import seer from "./seer.png";
-import cupid from "./cupid.png";
+const villager = require ("./villager.png");
+const gossip = require ("./gossip.png");
+const jailer = require ("./jailer.png");
+const gunner = require ("./gunner.png");
+const grumpyGrandma = require ("./grumpy-grandma.png");
+const priest = require ("./priest.png");
+const graveRobber = require ("./grave-robber.png");
+const doctor = require ("./doctor.png");
+const mayor = require ("./mayor.png");
+const sheriff = require ("./sheriff.png");
+const detective = require ("./detective.png");
+const seer = require ("./seer.png");
+const cupid = require ("./cupid.png");
 
 // werewolves
-import alphaWerewolf from "./alpha-werewolf.png";
-import cursed from "./cursed.png";
-import juniorWerewolf from "./junior-werewolf.png";
-import nightmareWerewolf from "./nightmare-werewolf.png";
-import wolfSeer from "./wolf-seer.png";
-import wolfShaman from "./wolf-shaman.png";
-import werewolf from "./werewolf.png";
+const alphaWerewolf = require ("./alpha-werewolf.png");
+const cursed = require ("./cursed.png");
+const juniorWerewolf = require ("./junior-werewolf.png");
+const nightmareWerewolf = require ("./nightmare-werewolf.png");
+const wolfSeer = require ("./wolf-seer.png");
+const wolfShaman = require ("./wolf-shaman.png");
+const werewolf = require ("./werewolf.png");
 
 // solo / others
-import serialKiller from "./serial-killer.png";
-import headHunter from "./head-hunter.png";
-import fool from "./fool.png";
-import pyromaniac from "./pyromaniac.png";
-import ghostLady from "./ghost-lady.png";
-import bandit from "./bandit.png";
-import accomplice from "./accomplice.png";
+const serialKiller = require ("./serial-killer.png");
+const headHunter = require ("./head-hunter.png");
+const fool = require ("./fool.png");
+const pyromaniac = require ("./pyromaniac.png");
+const ghostLady = require ("./ghost-lady.png");
+const bandit = require ("./bandit.png");
+const accomplice = require ("./accomplice.png");
 
-const rolesIcons = {
+exports.rolesIcons = {
   // village
   villager: villager,
   gossip: gossip,
@@ -65,5 +65,3 @@ const rolesIcons = {
   wolfShaman: wolfShaman,
   werewolf: werewolf,
 };
-
-export default rolesIcons;
