@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 
 const userRoutes = require("./routes/user");
+const rolesRoutes = require("./routes/roles");
 
 mongoose.set("strictQuery", false);
 
@@ -38,6 +39,7 @@ app.get("/", async (req, res) => {
   res.status(200).json({ message: "Api Hello!!" });
 });
 
+app.use("/api/roles", rolesRoutes);
 app.use("/api/user", userRoutes);
 
 module.exports = app;
