@@ -7,6 +7,7 @@ const cors = require("cors");
 
 const userRoutes = require("./routes/user");
 const rolesRoutes = require("./routes/roles");
+const teamsRoutes = require("./routes/teams");
 
 mongoose.set("strictQuery", false);
 
@@ -39,6 +40,7 @@ app.get("/", async (req, res) => {
   res.status(200).json({ message: "Api Hello!!" });
 });
 
+app.use("/api/teams", teamsRoutes);
 app.use("/api/roles", rolesRoutes);
 app.use("/api/user", userRoutes);
 

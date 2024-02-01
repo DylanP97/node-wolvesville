@@ -46,6 +46,7 @@ const io = socketIO(server, {
 
 let rooms = [];
 let connectedUsers = [];
+let games = [];
 
 io.on("connection", (socket) => {
   socket.on("sendNewConnectedUser", (user) => {
@@ -99,11 +100,42 @@ io.on("connection", (socket) => {
           registeredActions: [], 
           winningTeam: null,
         };
+        const newRooms = rooms.filter((r) => r.id != roomId)
+        rooms = newRooms;
+        rooms.push(roomToJoin)
         io.emit("updateRooms", rooms);
-        io.to(roomId).emit('launchRoom', roomToJoin.id);
+        games.push(roomToJoin);
+        io.to(roomId).emit('launchRoom', roomToJoin);
       }
     } else {
       console.log("the room doesn't exist")
+    }
+  });
+
+  socket.on("playerKill", (roomId, name) => {
+    console.log("games : => ")
+    console.log(games.playersList)
+    let gameToUpdate = games.find((room) => room.id === roomId);
+    if (gameToUpdate) {
+      let newPlayerList = gameToUpdate.playersList;
+      newPlayerList = newPlayerList.map((ply) => {
+        if (ply.name == name) {
+          return {
+            ...ply,
+            isAlive: false,
+          }
+        } else {
+          return ply;
+        }
+      });
+      gameToUpdate = {
+        ...gameToUpdate,
+        playersList: newPlayerList
+      };
+      const newGames = games.filter((r) => r.id != roomId)
+      games = newGames;
+      games.push(gameToUpdate);
+      io.to(roomId).emit("updateGame", gameToUpdate);
     }
   });
 
@@ -111,7 +143,7 @@ io.on("connection", (socket) => {
     updatedRooms = rooms.filter((room) => room.id !== roomId)
     rooms = updatedRooms;
     io.emit("updateRooms", rooms);
-  })
+  });
 
   socket.on("chat message", (msg) => {
     console.log("Message: " + msg);
