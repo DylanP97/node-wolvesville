@@ -2,6 +2,7 @@ const http = require("http");
 const app = require("./index");
 const socketIO = require("socket.io");
 const { initializePlayersList } = require("./gameEvents");
+const { checkForWinner } = require("./lib/gameActions");
 
 const normalizePort = (val) => {
   const port = parseInt(val, 10);
@@ -113,8 +114,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("playerKill", (roomId, name) => {
-    console.log("games : => ")
-    console.log(games.playersList)
     let gameToUpdate = games.find((room) => room.id === roomId);
     if (gameToUpdate) {
       let newPlayerList = gameToUpdate.playersList;
@@ -132,6 +131,21 @@ io.on("connection", (socket) => {
         ...gameToUpdate,
         playersList: newPlayerList
       };
+      const newGames = games.filter((r) => r.id != roomId)
+      games = newGames;
+      games.push(gameToUpdate);
+      io.to(roomId).emit("updateGame", gameToUpdate);
+    }
+  });
+
+  socket.on("checkForWinner", (roomId) => {
+    let gameToUpdate = games.find((room) => room.id === roomId);
+    if (gameToUpdate.aliveList == null) {
+      gameToUpdate.aliveList = gameToUpdate.playersList.filter((p) => p.isAlive)
+    };
+    let winner = checkForWinner(gameToUpdate.aliveList);
+    if (winner != null) {
+      gameToUpdate.winningTeam = winner;
       const newGames = games.filter((r) => r.id != roomId)
       games = newGames;
       games.push(gameToUpdate);
