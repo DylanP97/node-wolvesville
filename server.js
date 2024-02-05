@@ -82,7 +82,7 @@ io.on("connection", (socket) => {
           ...connectedUsers[userIndex],
           isInRoom: roomId
         }
-      }
+      };
       io.emit("updateUsers", connectedUsers);
       socket.join(roomId);
       if (roomToJoin.usersInTheRoom.length == roomToJoin.nbrOfPlayers) {
@@ -94,11 +94,12 @@ io.on("connection", (socket) => {
         roomToJoin = {
           ...roomToJoin,
           playersList: playersList,
-          timeOfTheDay: "nighttime",
-          dayCount: 0,
-          aliveList: null, 
+          aliveList: null,
           playerToPlay: playersList[0],
-          registeredActions: [], 
+          dayCount: 0,
+          timeOfTheDay: "nighttime",
+          timeCounter: 20000,
+          registeredActions: [],
           winningTeam: null,
         };
         const newRooms = rooms.filter((r) => r.id != roomId)
@@ -107,11 +108,26 @@ io.on("connection", (socket) => {
         io.emit("updateRooms", rooms);
         games.push(roomToJoin);
         io.to(roomId).emit('launchRoom', roomToJoin);
+
+        let gameToUpdate = games.find((room) => room.id === roomId);
+        console.log(gameToUpdate)
+
+        function updateGame() {
+          if (gameToUpdate.winningTeam == null) {
+            gameToUpdate.timeCounter -= 1000;
+            io.to(roomId).emit('updateGame', gameToUpdate);
+            setTimeout(updateGame, 1000);
+          }
+        }
+
+        updateGame();
       }
     } else {
       console.log("the room doesn't exist")
     }
   });
+
+
 
   socket.on("playerKill", (roomId, name) => {
     let gameToUpdate = games.find((room) => room.id === roomId);
@@ -127,9 +143,12 @@ io.on("connection", (socket) => {
           return ply;
         }
       });
+      let newAliveList = gameToUpdate.aliveList;
+      newAliveList = newPlayerList.filter((p) => p.isAlive)
       gameToUpdate = {
         ...gameToUpdate,
-        playersList: newPlayerList
+        playersList: newPlayerList,
+        aliveList: newAliveList
       };
       const newGames = games.filter((r) => r.id != roomId)
       games = newGames;

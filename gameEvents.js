@@ -15,6 +15,6 @@ exports.initializePlayersList = (nbrOfPlayers, selectedRoles, usersInTheRoom) =>
     player.name = usersInTheRoom[index].username;
     return player;
   })
-  
+
   return playersList;
 };
