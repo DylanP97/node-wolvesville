@@ -109,25 +109,39 @@ io.on("connection", (socket) => {
         games.push(roomToJoin);
         io.to(roomId).emit('launchRoom', roomToJoin);
 
-        let gameToUpdate = games.find((room) => room.id === roomId);
-        console.log(gameToUpdate)
+        let gameToUpdate
 
         function updateGame() {
+          gameToUpdate = games.find((room) => room.id === roomId);
+
           if (gameToUpdate.winningTeam == null) {
             gameToUpdate.timeCounter -= 1000;
+            if (gameToUpdate.timeCounter == 0) {
+              if (gameToUpdate.timeOfTheDay == "nighttime") {
+                gameToUpdate.timeOfTheDay = "daytime"
+                gameToUpdate.timeCounter = 20000
+                gameToUpdate.dayCount += 1
+              } else if (gameToUpdate.timeOfTheDay == "daytime") {
+                gameToUpdate.timeCounter = 20000
+                gameToUpdate.timeOfTheDay = "votetime"
+              } else if (gameToUpdate.timeOfTheDay == "votetime") {
+                gameToUpdate.timeCounter = 20000
+                gameToUpdate.timeOfTheDay = "nighttime"
+              };
+            }
+            const newGames = games.filter((r) => r.id != roomId)
+            games = newGames;
+            games.push(gameToUpdate);
             io.to(roomId).emit('updateGame', gameToUpdate);
             setTimeout(updateGame, 1000);
           }
         }
-
         updateGame();
       }
     } else {
       console.log("the room doesn't exist")
     }
   });
-
-
 
   socket.on("playerKill", (roomId, name) => {
     let gameToUpdate = games.find((room) => room.id === roomId);
@@ -138,6 +152,34 @@ io.on("connection", (socket) => {
           return {
             ...ply,
             isAlive: false,
+          }
+        } else {
+          return ply;
+        }
+      });
+      let newAliveList = gameToUpdate.aliveList;
+      newAliveList = newPlayerList.filter((p) => p.isAlive)
+      gameToUpdate = {
+        ...gameToUpdate,
+        playersList: newPlayerList,
+        aliveList: newAliveList
+      };
+      const newGames = games.filter((r) => r.id != roomId)
+      games = newGames;
+      games.push(gameToUpdate);
+      io.to(roomId).emit("updateGame", gameToUpdate);
+    }
+  });
+
+  socket.on("playerReveal", (roomId, name) => {
+    let gameToUpdate = games.find((room) => room.id === roomId);
+    if (gameToUpdate) {
+      let newPlayerList = gameToUpdate.playersList;
+      newPlayerList = newPlayerList.map((ply) => {
+        if (ply.name == name) {
+          return {
+            ...ply,
+            isRevealed: true,
           }
         } else {
           return ply;
