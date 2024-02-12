@@ -95,12 +95,12 @@ io.on("connection", (socket) => {
           ...roomToJoin,
           playersList: playersList,
           aliveList: null,
-          playerToPlay: playersList[0],
           dayCount: 0,
           timeOfTheDay: "nighttime",
           timeCounter: 20000,
           registeredActions: [],
           winningTeam: null,
+          messagesHistory: []
         };
         const newRooms = rooms.filter((r) => r.id != roomId)
         rooms = newRooms;
@@ -119,14 +119,17 @@ io.on("connection", (socket) => {
             if (gameToUpdate.timeCounter == 0) {
               if (gameToUpdate.timeOfTheDay == "nighttime") {
                 gameToUpdate.timeOfTheDay = "daytime"
-                gameToUpdate.timeCounter = 20000
+                gameToUpdate.timeCounter = 10000
                 gameToUpdate.dayCount += 1
+                gameToUpdate.messagesHistory.push({ author: "Game", msg: "It's a new day here in the village." })
               } else if (gameToUpdate.timeOfTheDay == "daytime") {
-                gameToUpdate.timeCounter = 20000
+                gameToUpdate.timeCounter = 30000
                 gameToUpdate.timeOfTheDay = "votetime"
+                gameToUpdate.messagesHistory.push({ author: "Game", msg: "It's time to vote." })
               } else if (gameToUpdate.timeOfTheDay == "votetime") {
-                gameToUpdate.timeCounter = 20000
+                gameToUpdate.timeCounter = 30000
                 gameToUpdate.timeOfTheDay = "nighttime"
+                gameToUpdate.messagesHistory.push({ author: "Game", msg: "Beware it's night..." })
               };
             }
             const newGames = games.filter((r) => r.id != roomId)
@@ -220,10 +223,13 @@ io.on("connection", (socket) => {
     io.emit("updateRooms", rooms);
   });
 
-  socket.on("chat message", (msg) => {
-    console.log("Message: " + msg);
-    const userId = socket.id;
-    io.emit("chat message", { msg, userId });
+  socket.on("sendMessage", (msg, roomId, username) => {
+    let gameToUpdate = games.find((room) => room.id === roomId);
+    gameToUpdate.messagesHistory.push({ author: username, msg: msg })
+    const newGames = games.filter((r) => r.id != roomId)
+    games = newGames;
+    games.push(gameToUpdate);
+    io.to(roomId).emit("updateGame", gameToUpdate);
   });
 
   socket.on("disconnect", () => {
