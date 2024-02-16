@@ -20,6 +20,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  avatar: {
+    type: Object,
+  }
 });
 
 userSchema.pre("save", async function (next) {

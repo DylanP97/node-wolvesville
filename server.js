@@ -251,11 +251,9 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("updateGame", gameToUpdate);
   });
 
-  socket.on("registerAction", (actionObject) => {
+  socket.on("registerAction", (actionObject, roomId) => {
     let gameToUpdate = games.find((room) => room.id === roomId);
-
     gameToUpdate.registeredActions.push(actionObject);
-
     const newGames = games.filter((r) => r.id != roomId)
     games = newGames;
     games.push(gameToUpdate);
