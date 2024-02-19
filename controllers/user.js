@@ -32,10 +32,7 @@ exports.login = async (req, res) => {
 };
 
 exports.editProfile = async (req, res) => {
-  console.log(req.body);
-
   try {
-    const filter = { username: req.body.username };
     const update = {
       $set: {
         avatar: {
@@ -58,6 +55,7 @@ exports.editProfile = async (req, res) => {
       },
     };
 
+    const filter = { username: req.body.username };
     const user = await UserModel.findOne(filter);
 
     if (!user) {
