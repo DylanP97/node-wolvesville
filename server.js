@@ -123,6 +123,7 @@ io.on("connection", (socket) => {
                   if (action.type === "murder") {
                     newPlayersList = gameToUpdate.playersList.map((ply) => {
                       if (ply.id === action.selectedPlayerId) {
+                        gameToUpdate.messagesHistory.push({ author: "Game", msg: `${ply.name} was killed last night by the serial killer.` })
                         return {
                           ...ply,
                           isAlive: false,
@@ -135,7 +136,7 @@ io.on("connection", (socket) => {
                 });
                 if (newPlayersList) {
                   gameToUpdate.playersList = newPlayersList;
-                  gameToUpdate.newAliveList = newPlayersList.filter((p) => p.isAlive)
+                  gameToUpdate.aliveList = newPlayersList.filter((p) => p.isAlive);
                 }
                 gameToUpdate.timeOfTheDay = "daytime"
                 gameToUpdate.timeCounter = 10000
@@ -249,6 +250,10 @@ io.on("connection", (socket) => {
     games = newGames;
     games.push(gameToUpdate);
     io.to(roomId).emit("updateGame", gameToUpdate);
+  });
+
+  socket.on("addVote", (selectedPlayer, nbr) => {
+
   });
 
   socket.on("registerAction", (actionObject, roomId) => {
