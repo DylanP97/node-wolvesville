@@ -13,6 +13,7 @@ exports.initializePlayersList = (nbrOfPlayers, selectedRoles, usersInTheRoom) =>
   playersList.map((player, index) => {
     player.role = shuffledRoles[index];
     player.name = usersInTheRoom[index].username;
+    player.avatar = usersInTheRoom[index].avatar;
     return player;
   })
 

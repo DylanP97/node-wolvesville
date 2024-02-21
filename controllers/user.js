@@ -61,24 +61,16 @@ exports.editProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-
+    
     const updatedUser = await UserModel.updateOne(filter, update);
 
-    if (updatedUser.nModified > 0) {
-      res.status(200).json({
-        message: "Utilisateur modifié !",
-        username: user.username,
-        avatar: update.$set.avatar,
-      });
-    } else {
-      res.status(200).json({
-        message: "Aucune modification nécessaire",
-        username: user.username,
-        avatar: user.avatar,
-      });
-    }
+    res.status(200).json({
+      message: "Modifications effectuées",
+      username: user.username,
+      avatar: updatedUser.avatar,
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ errors: err.message });
+    res.status(500).json({ message: err.message });
   }
 };

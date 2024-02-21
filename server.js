@@ -2,7 +2,7 @@ const http = require("http");
 const app = require("./index");
 const socketIO = require("socket.io");
 const { initializePlayersList } = require("./gameEvents");
-const { checkForWinner, murder } = require("./lib/gameActions");
+const { checkForWinner, murder, voteAgainst, findPlayerWithMostVotes, killSelectedPlayer } = require("./lib/gameActions");
 
 const normalizePort = (val) => {
   const port = parseInt(val, 10);
@@ -52,7 +52,7 @@ let games = [];
 io.on("connection", (socket) => {
   socket.on("sendNewConnectedUser", (user) => {
     connectedUsers.push(user);
-    console.log("A user connected " + socket.id + " " + user.username)
+    console.log("A user connected " + user.username)
     io.emit("updateUsers", connectedUsers);
     io.emit("updateRooms", rooms);
   })
@@ -74,6 +74,8 @@ io.on("connection", (socket) => {
   socket.on("joinRoom", (roomId, userJoining) => {
     let roomToJoin = rooms.find((room) => room.id === roomId);
     if (roomToJoin) {
+      // console.log("user joining: ")
+      // console.log(userJoining)
       roomToJoin.usersInTheRoom.push(userJoining)
       io.emit("updateRooms", rooms);
       let userIndex = connectedUsers.findIndex((usr) => usr.username === userJoining.username);
@@ -123,7 +125,7 @@ io.on("connection", (socket) => {
                   if (action.type === "murder") {
                     newPlayersList = gameToUpdate.playersList.map((ply) => {
                       if (ply.id === action.selectedPlayerId) {
-                        gameToUpdate.messagesHistory.push({ author: "Game", msg: `${ply.name} was killed last night by the serial killer.` })
+                        gameToUpdate.messagesHistory.push({ author: "", msg: `${ply.name} was killed last night by the serial killer.` })
                         return {
                           ...ply,
                           isAlive: false,
@@ -139,17 +141,40 @@ io.on("connection", (socket) => {
                   gameToUpdate.aliveList = newPlayersList.filter((p) => p.isAlive);
                 }
                 gameToUpdate.timeOfTheDay = "daytime"
-                gameToUpdate.timeCounter = 10000
+                gameToUpdate.timeCounter = 7000
                 gameToUpdate.dayCount += 1
-                gameToUpdate.messagesHistory.push({ author: "Game", msg: "It's a new day here in the village." })
+                gameToUpdate.messagesHistory.push({ author: "", msg: "It's a new day here in the village." })
               } else if (gameToUpdate.timeOfTheDay == "daytime") {
-                gameToUpdate.timeCounter = 15000
-                gameToUpdate.timeOfTheDay = "votetime"
-                gameToUpdate.messagesHistory.push({ author: "Game", msg: "It's time to vote." })
-              } else if (gameToUpdate.timeOfTheDay == "votetime") {
                 gameToUpdate.timeCounter = 30000
+                gameToUpdate.timeOfTheDay = "votetime"
+                gameToUpdate.messagesHistory.push({ author: "", msg: "It's time to vote." })
+              } else if (gameToUpdate.timeOfTheDay == "votetime") {
+                let newPlayersList;
+                newPlayersList = gameToUpdate.playersList;
+                gameToUpdate.timeCounter = 10000
                 gameToUpdate.timeOfTheDay = "nighttime"
-                gameToUpdate.messagesHistory.push({ author: "Game", msg: "Beware it's night..." })
+                gameToUpdate.messagesHistory.push({ author: "", msg: "Beware it's night..." })
+                const mostVotedAgainstPlayer = findPlayerWithMostVotes(playersList);
+                if (!mostVotedAgainstPlayer) {
+                  gameToUpdate.messagesHistory.push({ author: "", msg: `The town couldn't decide who to kill!` });
+                } else {
+                  newPlayersList = killSelectedPlayer(mostVotedAgainstPlayer.id, newPlayersList);
+                  if (mostVotedAgainstPlayer.role.name === "Fool") {
+                    gameToUpdate.messagesHistory.push({ author: "", msg: `The fool won 🤡!` });
+                    gameToUpdate.winningTeam = "fool";
+                  } else {
+                    gameToUpdate.messagesHistory.push({ author: "", msg: `The town decided to kill ${newPlayersList[mostVotedAgainstPlayer.id].name} has a result of the vote!` });
+                    // checkIfIsInLove(mostVotedAgainstPlayer, updatedPlayersList, setUpdatedPlayersList, displayAction);
+                  }
+                }
+                newPlayersList = newPlayersList.map((ply) => {
+                  return {
+                    ...ply,
+                    voteAgainst: 0
+                  };
+                });
+                gameToUpdate.playersList = newPlayersList;
+                gameToUpdate.aliveList = newPlayersList.filter((p) => p.isAlive);
               };
             }
             const newGames = games.filter((r) => r.id != roomId)
@@ -252,8 +277,14 @@ io.on("connection", (socket) => {
     io.to(roomId).emit("updateGame", gameToUpdate);
   });
 
-  socket.on("addVote", (selectedPlayer, nbr) => {
-
+  socket.on("addVote", (selectedPlayerId, nbr, roomId) => {
+    let gameToUpdate = games.find((room) => room.id === roomId);
+    const newPlayersList = voteAgainst(selectedPlayerId, gameToUpdate.playersList, nbr);
+    const newGames = games.filter((r) => r.id != roomId)
+    games = newGames;
+    gameToUpdate.playersList = newPlayersList;
+    games.push(gameToUpdate);
+    io.to(roomId).emit("updateGame", gameToUpdate);
   });
 
   socket.on("registerAction", (actionObject, roomId) => {
