@@ -2,7 +2,7 @@ const http = require("http");
 const app = require("./index");
 const socketIO = require("socket.io");
 const { initializePlayersList } = require("./gameEvents");
-const { checkForWinner, murder, voteAgainst, findPlayerWithMostVotes, killSelectedPlayer, revealPlayer } = require("./lib/gameActions");
+const { checkForWinner, murder, voteAgainst, findPlayerWithMostVotes, killSelectedPlayer, revealPlayer, wolfVoteAgainst, findPlayerWithMostWolvesVotes, initializeWolvesVotes } = require("./lib/gameActions");
 
 const normalizePort = (val) => {
   const port = parseInt(val, 10);
@@ -121,7 +121,7 @@ io.on("connection", (socket) => {
             gameToUpdate.timeCounter -= 1000;
             if (gameToUpdate.timeCounter == 0) {
               if (gameToUpdate.timeOfTheDay == "nighttime") {
-                let newPlayersList
+                let newPlayersList = gameToUpdate.playersList
                 gameToUpdate.registeredActions.forEach((action) => {
                   if (action.type === "murder") {
                     newPlayersList = gameToUpdate.playersList.map((ply) => {
@@ -137,12 +137,30 @@ io.on("connection", (socket) => {
                     })
                   }
                 });
-                if (newPlayersList) {
-                  gameToUpdate.playersList = newPlayersList;
-                  gameToUpdate.aliveList = newPlayersList.filter((p) => p.isAlive);
+
+                const mostVotedAgainstPlayer = findPlayerWithMostWolvesVotes(newPlayersList);
+                if (!mostVotedAgainstPlayer) {
+                  gameToUpdate.messagesHistory.push({ author: "", msg: `No one was murdered by the wolves!` });
+                } else {
+                  newPlayersList = killSelectedPlayer(mostVotedAgainstPlayer.id, newPlayersList);
+                  if (mostVotedAgainstPlayer.role.name === "Fool") {
+                    gameToUpdate.messagesHistory.push({ author: "", msg: `The fool won 🤡!` });
+                    gameToUpdate.winningTeam = {
+                      name: "fool",
+                      image: "https://res.cloudinary.com/dnhq4fcyp/image/upload/v1706531396/roles/fool_ngedk0.png",
+                    };
+                  } else {
+                    gameToUpdate.messagesHistory.push({ author: "", msg: `The wolves murdered ${newPlayersList[mostVotedAgainstPlayer.id].name} has a result of the vote!` });
+                    // checkIfIsInLove(mostVotedAgainstPlayer, updatedPlayersList, setUpdatedPlayersList, displayAction);
+                  }
                 }
+
+                newPlayersList = initializeWolvesVotes(newPlayersList);
+                
+                gameToUpdate.playersList = newPlayersList;
+                gameToUpdate.aliveList = newPlayersList.filter((p) => p.isAlive);
                 gameToUpdate.timeOfTheDay = "daytime"
-                gameToUpdate.timeCounter = 7000
+                gameToUpdate.timeCounter = 30000
                 gameToUpdate.dayCount += 1
                 gameToUpdate.messagesHistory.push({ author: "", msg: "It's a new day here in the village." })
               } else if (gameToUpdate.timeOfTheDay == "daytime") {
@@ -152,12 +170,11 @@ io.on("connection", (socket) => {
               } else if (gameToUpdate.timeOfTheDay == "votetime") {
                 let newPlayersList;
                 newPlayersList = gameToUpdate.playersList;
-                gameToUpdate.timeCounter = 10000
+                gameToUpdate.timeCounter = 30000
                 gameToUpdate.timeOfTheDay = "nighttime"
                 gameToUpdate.messagesHistory.push({ author: "", msg: "Beware it's night..." })
 
                 const mostVotedAgainstPlayer = findPlayerWithMostVotes(newPlayersList);
-                console.log(mostVotedAgainstPlayer)
                 if (!mostVotedAgainstPlayer) {
                   gameToUpdate.messagesHistory.push({ author: "", msg: `The town couldn't decide who to kill!` });
                 } else {
@@ -179,6 +196,7 @@ io.on("connection", (socket) => {
                     voteAgainst: 0
                   };
                 });
+
                 gameToUpdate.playersList = newPlayersList;
                 gameToUpdate.aliveList = newPlayersList.filter((p) => p.isAlive);
               };
@@ -266,12 +284,11 @@ io.on("connection", (socket) => {
     io.emit("updateRooms", rooms);
   });
 
-  socket.on("sendMessage", (msg, roomId, username, isWolfDiscussion) => {
-    console.log(msg)
+  socket.on("sendMessage", (msg, roomId, username, isWolvesChat) => {
     let gameToUpdate = games.find((room) => room.id === roomId);
-    isWolfDiscussion ?
-      gameToUpdate.messagesHistory.push({ author: username, msg: msg }) :
-      gameToUpdate.wolvesMessagesHistory.push({ author: username, msg: msg });
+    isWolvesChat ?
+      gameToUpdate.wolvesMessagesHistory.push({ author: username, msg: msg }) :
+      gameToUpdate.messagesHistory.push({ author: username, msg: msg });
     const newGames = games.filter((r) => r.id != roomId)
     games = newGames;
     games.push(gameToUpdate);
@@ -281,7 +298,16 @@ io.on("connection", (socket) => {
   socket.on("addVote", (selectedPlayerId, nbr, roomId) => {
     let gameToUpdate = games.find((room) => room.id === roomId);
     const newPlayersList = voteAgainst(selectedPlayerId, gameToUpdate.playersList, nbr);
-    console.log(newPlayersList)
+    const newGames = games.filter((r) => r.id != roomId)
+    games = newGames;
+    gameToUpdate.playersList = newPlayersList;
+    games.push(gameToUpdate);
+    io.to(roomId).emit("updateGame", gameToUpdate);
+  });
+
+  socket.on("addWolfVote", (selectedPlayerId, nbr, roomId) => {
+    let gameToUpdate = games.find((room) => room.id === roomId);
+    const newPlayersList = wolfVoteAgainst(selectedPlayerId, gameToUpdate.playersList, nbr);
     const newGames = games.filter((r) => r.id != roomId)
     games = newGames;
     gameToUpdate.playersList = newPlayersList;
