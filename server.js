@@ -2,7 +2,7 @@ const http = require("http");
 const app = require("./index");
 const socketIO = require("socket.io");
 const { initializePlayersList } = require("./gameEvents");
-const { checkForWinner, murder, voteAgainst, findPlayerWithMostVotes, killSelectedPlayer, revealPlayer, wolfVoteAgainst, arrestPlayer, releasePrisoners, handleWolvesVote, initializeVotes, handleVote } = require("./lib/gameActions");
+const { checkForWinner, murder, voteAgainst, revealPlayer, wolfVoteAgainst, arrestPlayer, releasePrisoners, handleWolvesVote, handleVote } = require("./lib/gameActions");
 
 const normalizePort = (val) => {
   const port = parseInt(val, 10);
@@ -104,6 +104,7 @@ io.on("connection", (socket) => {
           winningTeam: null,
           messagesHistory: [],
           wolvesMessagesHistory: [],
+          jailNightMessages: []
         };
         const newRooms = rooms.filter((r) => r.id != roomId)
         rooms = newRooms;
@@ -137,17 +138,18 @@ io.on("connection", (socket) => {
                   }
                 });
 
-                const { newPlayersListEdited, newMessagesHistoryEdited, newWinningTeamEdited } = handleWolvesVote(newPlayersList, newMessagesHistory, newWinningTeam)
+                const { playersList, messagesHistory, winningTeam } = handleWolvesVote(newPlayersList, newMessagesHistory, newWinningTeam)
 
-                newPlayersList = newPlayersListEdited;
-                newMessagesHistory = newMessagesHistoryEdited
-                newWinningTeam = newWinningTeamEdited
+                newPlayersList = playersList;
+                newMessagesHistory = messagesHistory
+                newWinningTeam = winningTeam
 
                 gameToUpdate.playersList = newPlayersList;
                 gameToUpdate.aliveList = newPlayersList.filter((p) => p.isAlive);
                 gameToUpdate.timeOfTheDay = "daytime"
                 gameToUpdate.timeCounter = 30000
                 gameToUpdate.dayCount += 1
+                gameToUpdate.jailNightMessages = []
                 newMessagesHistory.push({ author: "", msg: "It's a new day here in the village." })
                 gameToUpdate.messagesHistory = newMessagesHistory
                 gameToUpdate.winningTeam = newWinningTeam
@@ -170,14 +172,13 @@ io.on("connection", (socket) => {
                   }
                 });
 
-                const { newPlayersListEdited, newMessagesHistoryEdited, newWinningTeamEdited } = handleVote(newPlayersList, newMessagesHistory, newWinningTeam)
+                const { playersList, messagesHistory, winningTeam } = handleVote(newPlayersList, newMessagesHistory, newWinningTeam)
 
-                newPlayersList = newPlayersListEdited;
-                newMessagesHistory = newMessagesHistoryEdited
-                newWinningTeam = newWinningTeamEdited
+                newPlayersList = playersList;
+                newMessagesHistory = messagesHistory
+                newWinningTeam = winningTeam
 
                 newMessagesHistory.push({ author: "", msg: "Beware it's night..." })
-
                 gameToUpdate.timeCounter = 30000
                 gameToUpdate.timeOfTheDay = "nighttime"
                 gameToUpdate.playersList = newPlayersList;
@@ -267,11 +268,16 @@ io.on("connection", (socket) => {
     io.emit("updateRooms", rooms);
   });
 
-  socket.on("sendMessage", (msg, roomId, username, isWolvesChat) => {
+  socket.on("sendMessage", (msg, roomId, username, isWolvesChat, isJailerChat, isJailer) => {
     let gameToUpdate = games.find((room) => room.id === roomId);
-    isWolvesChat ?
-      gameToUpdate.wolvesMessagesHistory.push({ author: username, msg: msg }) :
+    if (isJailerChat) {
+      const authorN = isJailer ? "Jailer" : username
+      gameToUpdate.jailNightMessages.push({ author: authorN, msg: msg })
+    } else if (isWolvesChat) {
+      gameToUpdate.wolvesMessagesHistory.push({ author: username, msg: msg })
+    } else {
       gameToUpdate.messagesHistory.push({ author: username, msg: msg });
+    }
     const newGames = games.filter((r) => r.id != roomId)
     games = newGames;
     games.push(gameToUpdate);
