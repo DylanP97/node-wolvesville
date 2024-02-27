@@ -2,7 +2,7 @@ const http = require("http");
 const app = require("./index");
 const socketIO = require("socket.io");
 const { initializePlayersList } = require("./gameEvents");
-const { checkForWinner, murder, voteAgainst, findPlayerWithMostVotes, killSelectedPlayer, revealPlayer, wolfVoteAgainst, findPlayerWithMostWolvesVotes, initializeWolvesVotes } = require("./lib/gameActions");
+const { checkForWinner, murder, voteAgainst, findPlayerWithMostVotes, killSelectedPlayer, revealPlayer, wolfVoteAgainst, arrestPlayer, releasePrisoners, handleWolvesVote, initializeVotes, handleVote } = require("./lib/gameActions");
 
 const normalizePort = (val) => {
   const port = parseInt(val, 10);
@@ -121,82 +121,65 @@ io.on("connection", (socket) => {
             gameToUpdate.timeCounter -= 1000;
             if (gameToUpdate.timeCounter == 0) {
               if (gameToUpdate.timeOfTheDay == "nighttime") {
+                //--------- DAYTIME ---------------------------------------------------
                 let newPlayersList = gameToUpdate.playersList
+                let newMessagesHistory = gameToUpdate.messagesHistory
+                let newWinningTeam = gameToUpdate.winningTeam
+
+                newPlayersList = releasePrisoners(newPlayersList);
+
                 gameToUpdate.registeredActions.forEach((action) => {
                   if (action.type === "murder") {
-                    newPlayersList = gameToUpdate.playersList.map((ply) => {
-                      if (ply.id === action.selectedPlayerId) {
-                        gameToUpdate.messagesHistory.push({ author: "", msg: `${ply.name} was killed last night by the serial killer.` })
-                        return {
-                          ...ply,
-                          isAlive: false,
-                        }
-                      } else {
-                        return ply;
-                      }
-                    })
+                    const { newPlayersListEdited, newMessagesHistoryEdited } = murder(newPlayersList, newMessagesHistory, action)
+                    newPlayersList = newPlayersListEdited
+                    newMessagesHistory = newMessagesHistoryEdited
+                    gameToUpdate.registeredActions = [...gameToUpdate.registeredActions.filter((a) => a !== action)];
                   }
                 });
 
-                const mostVotedAgainstPlayer = findPlayerWithMostWolvesVotes(newPlayersList);
-                if (!mostVotedAgainstPlayer) {
-                  gameToUpdate.messagesHistory.push({ author: "", msg: `No one was murdered by the wolves!` });
-                } else {
-                  newPlayersList = killSelectedPlayer(mostVotedAgainstPlayer.id, newPlayersList);
-                  if (mostVotedAgainstPlayer.role.name === "Fool") {
-                    gameToUpdate.messagesHistory.push({ author: "", msg: `The fool won 🤡!` });
-                    gameToUpdate.winningTeam = {
-                      name: "fool",
-                      image: "https://res.cloudinary.com/dnhq4fcyp/image/upload/v1706531396/roles/fool_ngedk0.png",
-                    };
-                  } else {
-                    gameToUpdate.messagesHistory.push({ author: "", msg: `The wolves murdered ${newPlayersList[mostVotedAgainstPlayer.id].name} has a result of the vote!` });
-                    // checkIfIsInLove(mostVotedAgainstPlayer, updatedPlayersList, setUpdatedPlayersList, displayAction);
-                  }
-                }
+                const { newPlayersListEdited, newMessagesHistoryEdited, newWinningTeamEdited } = handleWolvesVote(newPlayersList, newMessagesHistory, newWinningTeam)
 
-                newPlayersList = initializeWolvesVotes(newPlayersList);
-                
+                newPlayersList = newPlayersListEdited;
+                newMessagesHistory = newMessagesHistoryEdited
+                newWinningTeam = newWinningTeamEdited
+
                 gameToUpdate.playersList = newPlayersList;
                 gameToUpdate.aliveList = newPlayersList.filter((p) => p.isAlive);
                 gameToUpdate.timeOfTheDay = "daytime"
                 gameToUpdate.timeCounter = 30000
                 gameToUpdate.dayCount += 1
-                gameToUpdate.messagesHistory.push({ author: "", msg: "It's a new day here in the village." })
+                newMessagesHistory.push({ author: "", msg: "It's a new day here in the village." })
+                gameToUpdate.messagesHistory = newMessagesHistory
+                gameToUpdate.winningTeam = newWinningTeam
+
               } else if (gameToUpdate.timeOfTheDay == "daytime") {
+                //---------- VOTETIME ------------------------------------------------------------
                 gameToUpdate.timeCounter = 30000
                 gameToUpdate.timeOfTheDay = "votetime"
                 gameToUpdate.messagesHistory.push({ author: "", msg: "It's time to vote." })
-              } else if (gameToUpdate.timeOfTheDay == "votetime") {
-                let newPlayersList;
-                newPlayersList = gameToUpdate.playersList;
-                gameToUpdate.timeCounter = 30000
-                gameToUpdate.timeOfTheDay = "nighttime"
-                gameToUpdate.messagesHistory.push({ author: "", msg: "Beware it's night..." })
 
-                const mostVotedAgainstPlayer = findPlayerWithMostVotes(newPlayersList);
-                if (!mostVotedAgainstPlayer) {
-                  gameToUpdate.messagesHistory.push({ author: "", msg: `The town couldn't decide who to kill!` });
-                } else {
-                  newPlayersList = killSelectedPlayer(mostVotedAgainstPlayer.id, newPlayersList);
-                  if (mostVotedAgainstPlayer.role.name === "Fool") {
-                    gameToUpdate.messagesHistory.push({ author: "", msg: `The fool won 🤡!` });
-                    gameToUpdate.winningTeam = {
-                      name: "fool",
-                      image: "https://res.cloudinary.com/dnhq4fcyp/image/upload/v1706531396/roles/fool_ngedk0.png",
-                    };
-                  } else {
-                    gameToUpdate.messagesHistory.push({ author: "", msg: `The town decided to kill ${newPlayersList[mostVotedAgainstPlayer.id].name} has a result of the vote!` });
-                    // checkIfIsInLove(mostVotedAgainstPlayer, updatedPlayersList, setUpdatedPlayersList, displayAction);
+              } else if (gameToUpdate.timeOfTheDay == "votetime") {
+                //--------- NIGHTTIME -----------------------------------------------------------
+                let newPlayersList = gameToUpdate.playersList;
+                let newMessagesHistory = gameToUpdate.messagesHistory
+                let newWinningTeam = gameToUpdate.winningTeam
+
+                gameToUpdate.registeredActions.forEach((action) => {
+                  if (action.type === "arrest") {
+                    newPlayersList = arrestPlayer(newPlayersList, action);
                   }
-                }
-                newPlayersList = newPlayersList.map((ply) => {
-                  return {
-                    ...ply,
-                    voteAgainst: 0
-                  };
                 });
 
+                const { newPlayersListEdited, newMessagesHistoryEdited, newWinningTeamEdited } = handleVote(newPlayersList, newMessagesHistory, newWinningTeam)
+
+                newPlayersList = newPlayersListEdited;
+                newMessagesHistory = newMessagesHistoryEdited
+                newWinningTeam = newWinningTeamEdited
+
+                newMessagesHistory.push({ author: "", msg: "Beware it's night..." })
+
+                gameToUpdate.timeCounter = 30000
+                gameToUpdate.timeOfTheDay = "nighttime"
                 gameToUpdate.playersList = newPlayersList;
                 gameToUpdate.aliveList = newPlayersList.filter((p) => p.isAlive);
               };
