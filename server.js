@@ -2,7 +2,7 @@ const http = require("http");
 const app = require("./index");
 const socketIO = require("socket.io");
 const { initializePlayersList } = require("./gameEvents");
-const { checkForWinner, murder, voteAgainst, revealPlayer, wolfVoteAgainst, arrestPlayer, releasePrisoners, handleWolvesVote, handleVote } = require("./lib/gameActions");
+const { checkForWinner, murder, voteAgainst, revealPlayer, wolfVoteAgainst, arrestPlayer, releasePrisoners, handleWolvesVote, handleVote, heal } = require("./lib/gameActions");
 
 const normalizePort = (val) => {
   const port = parseInt(val, 10);
@@ -96,7 +96,7 @@ io.on("connection", (socket) => {
         roomToJoin = {
           ...roomToJoin,
           playersList: playersList,
-          newAliveList: playersList.filter((p) => p.isAlive),
+          aliveList: playersList.filter((p) => p.isAlive),
           dayCount: 0,
           timeOfTheDay: "nighttime",
           timeCounter: 20000,
@@ -128,21 +128,24 @@ io.on("connection", (socket) => {
                 let newWinningTeam = gameToUpdate.winningTeam
 
                 newPlayersList = releasePrisoners(newPlayersList);
-
+                
                 gameToUpdate.registeredActions.forEach((action) => {
                   if (action.type === "murder") {
                     const { newPlayersListEdited, newMessagesHistoryEdited } = murder(newPlayersList, newMessagesHistory, action)
                     newPlayersList = newPlayersListEdited
                     newMessagesHistory = newMessagesHistoryEdited
+                    gameToUpdate.aliveList = newPlayersList.filter((p) => p.isAlive);
                     gameToUpdate.registeredActions = [...gameToUpdate.registeredActions.filter((a) => a !== action)];
                   }
                 });
 
-                const { playersList, messagesHistory, winningTeam } = handleWolvesVote(newPlayersList, newMessagesHistory, newWinningTeam)
+                if (gameToUpdate.aliveList.length > 1) {
+                  const { playersList, messagesHistory, winningTeam } = handleWolvesVote(newPlayersList, newMessagesHistory, newWinningTeam)
 
-                newPlayersList = playersList;
-                newMessagesHistory = messagesHistory
-                newWinningTeam = winningTeam
+                  newPlayersList = playersList;
+                  newMessagesHistory = messagesHistory
+                  newWinningTeam = winningTeam
+                }
 
                 gameToUpdate.playersList = newPlayersList;
                 gameToUpdate.aliveList = newPlayersList.filter((p) => p.isAlive);
@@ -246,6 +249,21 @@ io.on("connection", (socket) => {
       io.to(roomId).emit("updateGame", gameToUpdate);
     }
   });
+
+  socket.on("heal", (actionObject, roomId) => {
+    console.log("helloo heal function !")
+
+    let gameToUpdate = games.find((room) => room.id === roomId);
+    if (gameToUpdate) {
+      let newPlayerList = gameToUpdate.playersList;
+      newPlayerList = heal(actionObject, newPlayerList);
+      gameToUpdate.playersList = newPlayerList
+      const newGames = games.filter((r) => r.id != roomId)
+      games = newGames;
+      games.push(gameToUpdate);
+      io.to(roomId).emit("updateGame", gameToUpdate);
+    }
+  })
 
   socket.on("checkForWinner", (roomId) => {
     let gameToUpdate = games.find((room) => room.id === roomId);
