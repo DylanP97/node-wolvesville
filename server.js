@@ -74,8 +74,6 @@ io.on("connection", (socket) => {
   socket.on("joinRoom", (roomId, userJoining) => {
     let roomToJoin = rooms.find((room) => room.id === roomId);
     if (roomToJoin) {
-      // console.log("user joining: ")
-      // console.log(userJoining)
       roomToJoin.usersInTheRoom.push(userJoining)
       io.emit("updateRooms", rooms);
       let userIndex = connectedUsers.findIndex((usr) => usr.username === userJoining.username);
@@ -166,8 +164,8 @@ io.on("connection", (socket) => {
               } else if (gameToUpdate.timeOfTheDay == "votetime") {
                 //--------- NIGHTTIME -----------------------------------------------------------
                 let newPlayersList = gameToUpdate.playersList;
-                let newMessagesHistory = gameToUpdate.messagesHistory
-                let newWinningTeam = gameToUpdate.winningTeam
+                let newMessagesHistory = gameToUpdate.messagesHistory;
+                let newWinningTeam = gameToUpdate.winningTeam;
 
                 gameToUpdate.registeredActions.forEach((action) => {
                   if (action.type === "arrest") {
@@ -186,6 +184,7 @@ io.on("connection", (socket) => {
                 gameToUpdate.timeOfTheDay = "nighttime"
                 gameToUpdate.playersList = newPlayersList;
                 gameToUpdate.aliveList = newPlayersList.filter((p) => p.isAlive);
+                gameToUpdate.messagesHistory = newMessagesHistory;
               };
             }
             const newGames = games.filter((r) => r.id != roomId)

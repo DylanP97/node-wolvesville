@@ -1,8 +1,17 @@
 const UserModel = require("../models/user");
 const { signUpErrors, signInErrors } = require("../middleware/errors");
 
+exports.getUsers = async (req, res) => {
+  try {
+    const users = await UserModel.find();
+    res.status(200).json({ success: true, data: users });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ success: false, error: "Internal Server Error" });
+  }
+}
+
 exports.signup = async (req, res) => {
-  console.log(req.body)
   const username = req.body.username.trim();
   const email = req.body.email.trim();
   const { password } = req.body;
@@ -61,7 +70,7 @@ exports.editProfile = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    
+
     const updatedUser = await UserModel.updateOne(filter, update);
 
     res.status(200).json({
