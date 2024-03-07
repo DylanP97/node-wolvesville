@@ -2,7 +2,8 @@ const http = require("http");
 const app = require("./index");
 const socketIO = require("socket.io");
 const { initializePlayersList } = require("./gameEvents");
-const { checkForWinner, murder, voteAgainst, revealPlayer, wolfVoteAgainst, arrestPlayer, releasePrisoners, handleWolvesVote, handleVote, heal } = require("./lib/gameActions");
+const { checkForWinner, murder, voteAgainst, revealPlayer, wolfVoteAgainst, arrestPlayer, releasePrisoners, handleWolvesVote, handleVote, heal, killPrisoner } = require("./lib/gameActions");
+const { getCurrentDateTime } = require("./lib/utils");
 
 const normalizePort = (val) => {
   const port = parseInt(val, 10);
@@ -120,13 +121,12 @@ io.on("connection", (socket) => {
             gameToUpdate.timeCounter -= 1000;
             if (gameToUpdate.timeCounter == 0) {
               if (gameToUpdate.timeOfTheDay == "nighttime") {
-                //--------- DAYTIME ---------------------------------------------------
                 let newPlayersList = gameToUpdate.playersList
                 let newMessagesHistory = gameToUpdate.messagesHistory
                 let newWinningTeam = gameToUpdate.winningTeam
 
                 newPlayersList = releasePrisoners(newPlayersList);
-                
+
                 gameToUpdate.registeredActions.forEach((action) => {
                   if (action.type === "murder") {
                     const { newPlayersListEdited, newMessagesHistoryEdited } = murder(newPlayersList, newMessagesHistory, action)
@@ -151,18 +151,18 @@ io.on("connection", (socket) => {
                 gameToUpdate.timeCounter = 30000
                 gameToUpdate.dayCount += 1
                 gameToUpdate.jailNightMessages = []
-                newMessagesHistory.push({ author: "", msg: "It's a new day here in the village." })
+                newMessagesHistory.push({ time: getCurrentDateTime(), author: "", msg: "It's a new day here in the village.☀️" })
                 gameToUpdate.messagesHistory = newMessagesHistory
                 gameToUpdate.winningTeam = newWinningTeam
+                //--------- DAYTIME ---------------------------------------------------
 
               } else if (gameToUpdate.timeOfTheDay == "daytime") {
-                //---------- VOTETIME ------------------------------------------------------------
                 gameToUpdate.timeCounter = 30000
                 gameToUpdate.timeOfTheDay = "votetime"
-                gameToUpdate.messagesHistory.push({ author: "", msg: "It's time to vote." })
+                gameToUpdate.messagesHistory.push({ time: getCurrentDateTime(), author: "", msg: "It's time to vote. ✉️" })
 
+                //---------- VOTETIME ------------------------------------------------------------
               } else if (gameToUpdate.timeOfTheDay == "votetime") {
-                //--------- NIGHTTIME -----------------------------------------------------------
                 let newPlayersList = gameToUpdate.playersList;
                 let newMessagesHistory = gameToUpdate.messagesHistory;
                 let newWinningTeam = gameToUpdate.winningTeam;
@@ -179,12 +179,13 @@ io.on("connection", (socket) => {
                 newMessagesHistory = messagesHistory
                 newWinningTeam = winningTeam
 
-                newMessagesHistory.push({ author: "", msg: "Beware it's night..." })
+                newMessagesHistory.push({ time: getCurrentDateTime(), author: "", msg: "Beware it's night... 🌒" })
                 gameToUpdate.timeCounter = 30000
                 gameToUpdate.timeOfTheDay = "nighttime"
                 gameToUpdate.playersList = newPlayersList;
                 gameToUpdate.aliveList = newPlayersList.filter((p) => p.isAlive);
                 gameToUpdate.messagesHistory = newMessagesHistory;
+                //--------- NIGHTTIME -----------------------------------------------------------
               };
             }
             const newGames = games.filter((r) => r.id != roomId)
@@ -241,13 +242,29 @@ io.on("connection", (socket) => {
         playersList: newPlayerList,
         aliveList: newAliveList
       };
-      gameToUpdate.messagesHistory.push({ author: "", msg: `The seer's magical crystal ball unveiled the identity of ${actionObject.selectedPlayerName}!` });
+      gameToUpdate.messagesHistory.push({ time: getCurrentDateTime(), author: "", msg: `The seer's magical crystal ball unveiled the identity of ${actionObject.selectedPlayerName}! 👁️` });
       const newGames = games.filter((r) => r.id != roomId)
       games = newGames;
       games.push(gameToUpdate);
       io.to(roomId).emit("updateGame", gameToUpdate);
     }
   });
+
+  socket.on("killPrisoner", (actionObject, roomId) => {
+    console.log("helloo killPrisoner function !")
+
+    let gameToUpdate = games.find((room) => room.id === roomId);
+    if (gameToUpdate) {
+      let newPlayerList = gameToUpdate.playersList;
+      newPlayerList = killPrisoner(newPlayerList);
+      gameToUpdate.messagesHistory.push({ time: getCurrentDateTime(), author: "", msg: `The jailer executed its last night prisoner named ${actionObject.selectedPlayerName} 💀` })
+      gameToUpdate.playersList = newPlayerList
+      const newGames = games.filter((r) => r.id != roomId)
+      games = newGames;
+      games.push(gameToUpdate);
+      io.to(roomId).emit("updateGame", gameToUpdate);
+    }
+  })
 
   socket.on("heal", (actionObject, roomId) => {
     console.log("helloo heal function !")
@@ -289,11 +306,11 @@ io.on("connection", (socket) => {
     let gameToUpdate = games.find((room) => room.id === roomId);
     if (isJailerChat) {
       const authorN = isJailer ? "Jailer" : username
-      gameToUpdate.jailNightMessages.push({ author: authorN, msg: msg })
+      gameToUpdate.jailNightMessages.push({ time: getCurrentDateTime(), author: authorN, msg: msg })
     } else if (isWolvesChat) {
-      gameToUpdate.wolvesMessagesHistory.push({ author: username, msg: msg })
+      gameToUpdate.wolvesMessagesHistory.push({ time: getCurrentDateTime(), author: username, msg: msg })
     } else {
-      gameToUpdate.messagesHistory.push({ author: username, msg: msg });
+      gameToUpdate.messagesHistory.push({ time: getCurrentDateTime(), author: username, msg: msg });
     }
     const newGames = games.filter((r) => r.id != roomId)
     games = newGames;
