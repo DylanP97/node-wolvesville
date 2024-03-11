@@ -133,7 +133,6 @@ io.on("connection", (socket) => {
     } else {
       console.log("the room doesn't exist")
     }
-
   });
 
   socket.on("playerKill", (roomId, name) => {
@@ -189,10 +188,10 @@ io.on("connection", (socket) => {
 
     let gameToUpdate = games.find((room) => room.id === roomId);
     if (gameToUpdate) {
-      let newPlayerList = gameToUpdate.playersList;
-      newPlayerList = killPrisoner(newPlayerList);
+      let playersList = gameToUpdate.playersList;
+      playersList = killPrisoner(playersList);
       gameToUpdate.messagesHistory.unshift({ time: getCurrentTime(), author: "", msg: `The jailer executed its last night prisoner named ${actionObject.selectedPlayerName} 💀` })
-      gameToUpdate.playersList = newPlayerList
+      gameToUpdate.playersList = playersList
       const newGames = games.filter((r) => r.id != roomId)
       games = newGames;
       games.push(gameToUpdate);
