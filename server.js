@@ -1,10 +1,14 @@
 const http = require("http");
 const app = require("./index");
 const socketIO = require("socket.io");
-const { checkForWinner, voteAgainst, revealPlayer, wolfVoteAgainst, heal, killPrisoner } = require("./lib/gameActions");
+const { checkForWinner } = require("./lib/gameActions");
 const { getCurrentTime } = require("./lib/utils");
 const { toVoteTime, toNightTime, toDayTime } = require("./lib/timeOfTheDay");
 const { initializeGameObject, initializePlayersList } = require("./lib/gameSetup");
+const { heal } = require("./lib/gameActions/doctor");
+const { killPrisoner } = require("./lib/gameActions/jailer");
+const { voteAgainst, wolfVoteAgainst } = require("./lib/gameActions/vote");
+const { revealPlayer } = require("./lib/gameActions/seer");
 
 const normalizePort = (val) => {
   const port = parseInt(val, 10);
@@ -184,8 +188,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("killPrisoner", (actionObject, roomId) => {
-    console.log("helloo killPrisoner function !")
-
     let gameToUpdate = games.find((room) => room.id === roomId);
     if (gameToUpdate) {
       let playersList = gameToUpdate.playersList;
@@ -200,8 +202,6 @@ io.on("connection", (socket) => {
   })
 
   socket.on("heal", (actionObject, roomId) => {
-    console.log("helloo heal function !")
-
     let gameToUpdate = games.find((room) => room.id === roomId);
     if (gameToUpdate) {
       let newPlayerList = gameToUpdate.playersList;
