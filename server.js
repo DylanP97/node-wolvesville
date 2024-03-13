@@ -9,6 +9,7 @@ const { heal } = require("./lib/gameActions/doctor");
 const { killPrisoner } = require("./lib/gameActions/jailer");
 const { voteAgainst, wolfVoteAgainst } = require("./lib/gameActions/vote");
 const { revealPlayer } = require("./lib/gameActions/seer");
+const { shootBullet } = require("./lib/gameActions/gunner");
 
 const normalizePort = (val) => {
   const port = parseInt(val, 10);
@@ -214,6 +215,20 @@ io.on("connection", (socket) => {
     }
   })
 
+  socket.on("shootBullet", (actionObject, roomId) => {
+    let gameToUpdate = games.find((room) => room.id === roomId);
+    if (gameToUpdate) {
+      let newPlayerList = gameToUpdate.playersList;
+      const { playersListEdit, messagesHistoryEdit } = shootBullet(newPlayerList, gameToUpdate.messagesHistory, actionObject);
+      gameToUpdate.playersList = playersListEdit;
+      gameToUpdate.messagesHistory = messagesHistoryEdit
+      const newGames = games.filter((r) => r.id != roomId)
+      games = newGames;
+      games.push(gameToUpdate);
+      io.to(roomId).emit("updateGame", gameToUpdate);
+    }
+  })
+
   socket.on("checkForWinner", (roomId) => {
     let gameToUpdate = games.find((room) => room.id === roomId);
     if (gameToUpdate.aliveList == null) {
@@ -221,6 +236,7 @@ io.on("connection", (socket) => {
     };
     let winner = checkForWinner(gameToUpdate.aliveList);
     if (winner != null) {
+      winner.alivePlayers = gameToUpdate.aliveList
       gameToUpdate.winningTeam = winner;
       const newGames = games.filter((r) => r.id != roomId)
       games = newGames;
