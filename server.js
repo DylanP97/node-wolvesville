@@ -4,7 +4,7 @@ const socketIO = require("socket.io");
 const { checkForWinner } = require("./lib/gameActions");
 const { getCurrentTime } = require("./lib/utils");
 const { toVoteTime, toNightTime, toDayTime } = require("./lib/timeOfTheDay");
-const { initializeGameObject, initializePlayersList } = require("./lib/gameSetup");
+const { initializeGameObject, initializePlayersList, setGames, editGame } = require("./lib/gameSetup");
 const { heal } = require("./lib/gameActions/doctor");
 const { killPrisoner } = require("./lib/gameActions/jailer");
 const { voteAgainst, wolfVoteAgainst } = require("./lib/gameActions/vote");
@@ -140,160 +140,137 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("playerKill", (roomId, name) => {
-    let gameToUpdate = games.find((room) => room.id === roomId);
-    if (gameToUpdate) {
-      let newPlayerList = gameToUpdate.playersList;
-      newPlayerList = newPlayerList.map((ply) => {
-        if (ply.name == name) {
-          return {
-            ...ply,
-            isAlive: false,
-          }
-        } else {
-          return ply;
-        }
-      });
-      let newAliveList = gameToUpdate.aliveList;
-      newAliveList = newPlayerList.filter((p) => p.isAlive)
-      gameToUpdate = {
-        ...gameToUpdate,
-        playersList: newPlayerList,
-        aliveList: newAliveList
-      };
-      const newGames = games.filter((r) => r.id != roomId)
-      games = newGames;
-      games.push(gameToUpdate);
-      io.to(roomId).emit("updateGame", gameToUpdate);
+  //-----------------------------------------------------------
+  //-----------------------------------------------------------
+  //-----------------------------------------------------------
+
+  socket.on("revealPlayer", (action, roomId) => {
+    let game = games.find((room) => room.id === roomId);
+    if (game) {
+
+      editGame(
+        game,
+        "reveal",
+        action,
+        `The seer's magical crystal ball unveiled the identity of ${action.selectedPlayerName}! 👁️`
+      )
+
+      setGames(games, game, io, roomId);
     }
   });
 
-  socket.on("revealPlayer", (actionObject, roomId) => {
-    let gameToUpdate = games.find((room) => room.id === roomId);
-    if (gameToUpdate) {
-      let newPlayerList = gameToUpdate.playersList;
-      newPlayerList = revealPlayer(actionObject, newPlayerList);
-      let newAliveList = gameToUpdate.aliveList;
-      newAliveList = newPlayerList.filter((p) => p.isAlive);
-      gameToUpdate = {
-        ...gameToUpdate,
-        playersList: newPlayerList,
-        aliveList: newAliveList
-      };
-      gameToUpdate.messagesHistory.unshift({ time: getCurrentTime(), author: "", msg: `The seer's magical crystal ball unveiled the identity of ${actionObject.selectedPlayerName}! 👁️` });
-      const newGames = games.filter((r) => r.id != roomId)
-      games = newGames;
-      games.push(gameToUpdate);
-      io.to(roomId).emit("updateGame", gameToUpdate);
+  socket.on("killPrisoner", (action, roomId) => {
+    let game = games.find((room) => room.id === roomId);
+    if (game) {
+
+      editGame(
+        game,
+        "execute",
+        action,
+        `The jailer executed its last night prisoner named ${action.selectedPlayerName} 💀`
+      )
+
+      setGames(games, game, io, roomId);
+    }
+  })
+
+  socket.on("heal", (action, roomId) => {
+    let game = games.find((room) => room.id === roomId);
+    if (game) {
+
+      editGame(
+        game,
+        "heal",
+        action
+      )
+
+      setGames(games, game, io, roomId);
+    }
+  })
+
+  socket.on("shootBullet", (action, roomId) => {
+    let game = games.find((room) => room.id === roomId);
+    if (game) {
+
+      editGame(
+        game,
+        "shoot",
+        action,
+        `The gunner shot ${action.selectedPlayerName}. 💀`
+      )
+
+      setGames(games, game, io, roomId);
+    }
+  })
+
+  //----------------
+
+  socket.on("addVote", (selectedPlayerId, nbr, roomId) => {
+    let game = games.find((room) => room.id === roomId);
+    if (game) {
+
+      game.playersList = voteAgainst(
+        selectedPlayerId,
+        game.playersList,
+        nbr
+      );
+      
+      setGames(games, game, io, roomId);
     }
   });
 
-  socket.on("killPrisoner", (actionObject, roomId) => {
-    let gameToUpdate = games.find((room) => room.id === roomId);
-    if (gameToUpdate) {
-      let playersList = gameToUpdate.playersList;
-      playersList = killPrisoner(playersList);
-      gameToUpdate.messagesHistory.unshift({ time: getCurrentTime(), author: "", msg: `The jailer executed its last night prisoner named ${actionObject.selectedPlayerName} 💀` })
-      gameToUpdate.playersList = playersList
-      const newGames = games.filter((r) => r.id != roomId)
-      games = newGames;
-      games.push(gameToUpdate);
-      io.to(roomId).emit("updateGame", gameToUpdate);
-    }
-  })
+  socket.on("addWolfVote", (selectedPlayerId, nbr, roomId) => {
+    let game = games.find((room) => room.id === roomId);
+    if (game) {
+      
+      game.playersList = wolfVoteAgainst(
+        selectedPlayerId,
+        game.playersList,
+        nbr
+      );
 
-  socket.on("heal", (actionObject, roomId) => {
-    let gameToUpdate = games.find((room) => room.id === roomId);
-    if (gameToUpdate) {
-      let newPlayerList = gameToUpdate.playersList;
-      newPlayerList = heal(actionObject, newPlayerList);
-      gameToUpdate.playersList = newPlayerList
-      const newGames = games.filter((r) => r.id != roomId)
-      games = newGames;
-      games.push(gameToUpdate);
-      io.to(roomId).emit("updateGame", gameToUpdate);
+      setGames(games, game, io, roomId);
     }
-  })
-
-  socket.on("shootBullet", (actionObject, roomId) => {
-    let gameToUpdate = games.find((room) => room.id === roomId);
-    if (gameToUpdate) {
-      let newPlayerList = gameToUpdate.playersList;
-      const { playersListEdit, messagesHistoryEdit } = shootBullet(newPlayerList, gameToUpdate.messagesHistory, actionObject);
-      gameToUpdate.playersList = playersListEdit;
-      gameToUpdate.messagesHistory = messagesHistoryEdit
-      const newGames = games.filter((r) => r.id != roomId)
-      games = newGames;
-      games.push(gameToUpdate);
-      io.to(roomId).emit("updateGame", gameToUpdate);
-    }
-  })
+  });
 
   socket.on("checkForWinner", (roomId) => {
-    let gameToUpdate = games.find((room) => room.id === roomId);
-    if (gameToUpdate.aliveList == null) {
-      gameToUpdate.aliveList = gameToUpdate.playersList.filter((p) => p.isAlive)
+    let game = games.find((room) => room.id === roomId);
+    if (game.aliveList == null) {
+      game.aliveList = game.playersList.filter((p) => p.isAlive)
     };
-    let winner = checkForWinner(gameToUpdate.aliveList);
+    let winner = checkForWinner(game.aliveList);
     if (winner != null) {
-      winner.alivePlayers = gameToUpdate.aliveList
-      gameToUpdate.winningTeam = winner;
-      const newGames = games.filter((r) => r.id != roomId)
-      games = newGames;
-      games.push(gameToUpdate);
-      io.to(roomId).emit("updateGame", gameToUpdate);
+      winner.aliveList = game.aliveList
+      game.winningTeam = winner;
+
+      setGames(games, game, io, roomId);
     }
+  });
+
+  socket.on("sendMessage", (msg, roomId, username, isWolvesChat, isJailerChat, isJailer) => {
+    let game = games.find((room) => room.id === roomId);
+    if (isJailerChat) {
+      const authorN = isJailer ? "Jailer" : username
+      game.jailNightMessages.unshift({ time: getCurrentTime(), author: authorN, msg: msg })
+    } else if (isWolvesChat) {
+      game.wolvesMessagesHistory.unshift({ time: getCurrentTime(), author: username, msg: msg })
+    } else {
+      game.messagesHistory.unshift({ time: getCurrentTime(), author: username, msg: msg });
+    }
+
+    setGames(games, game, io, roomId);
+  });
+
+  socket.on("registerAction", (actionObject, roomId) => {
+    let game = games.find((room) => room.id === roomId);
+    game.registeredActions.push(actionObject);
+    setGames(games, game, io, roomId);
   });
 
   socket.on("deleteRoom", (roomId) => {
     updatedRooms = rooms.filter((room) => room.id !== roomId)
     rooms = updatedRooms;
     io.emit("updateRooms", rooms);
-  });
-
-  socket.on("sendMessage", (msg, roomId, username, isWolvesChat, isJailerChat, isJailer) => {
-    let gameToUpdate = games.find((room) => room.id === roomId);
-    if (isJailerChat) {
-      const authorN = isJailer ? "Jailer" : username
-      gameToUpdate.jailNightMessages.unshift({ time: getCurrentTime(), author: authorN, msg: msg })
-    } else if (isWolvesChat) {
-      gameToUpdate.wolvesMessagesHistory.unshift({ time: getCurrentTime(), author: username, msg: msg })
-    } else {
-      gameToUpdate.messagesHistory.unshift({ time: getCurrentTime(), author: username, msg: msg });
-    }
-    const newGames = games.filter((r) => r.id != roomId)
-    games = newGames;
-    games.push(gameToUpdate);
-    io.to(roomId).emit("updateGame", gameToUpdate);
-  });
-
-  socket.on("addVote", (selectedPlayerId, nbr, roomId) => {
-    let gameToUpdate = games.find((room) => room.id === roomId);
-    const newPlayersList = voteAgainst(selectedPlayerId, gameToUpdate.playersList, nbr);
-    const newGames = games.filter((r) => r.id != roomId)
-    games = newGames;
-    gameToUpdate.playersList = newPlayersList;
-    games.push(gameToUpdate);
-    io.to(roomId).emit("updateGame", gameToUpdate);
-  });
-
-  socket.on("addWolfVote", (selectedPlayerId, nbr, roomId) => {
-    let gameToUpdate = games.find((room) => room.id === roomId);
-    const newPlayersList = wolfVoteAgainst(selectedPlayerId, gameToUpdate.playersList, nbr);
-    const newGames = games.filter((r) => r.id != roomId)
-    games = newGames;
-    gameToUpdate.playersList = newPlayersList;
-    games.push(gameToUpdate);
-    io.to(roomId).emit("updateGame", gameToUpdate);
-  });
-
-  socket.on("registerAction", (actionObject, roomId) => {
-    let gameToUpdate = games.find((room) => room.id === roomId);
-    gameToUpdate.registeredActions.push(actionObject);
-    const newGames = games.filter((r) => r.id != roomId)
-    games = newGames;
-    games.push(gameToUpdate);
-    io.to(roomId).emit("updateGame", gameToUpdate);
   });
 
   socket.on("disconnect", () => {
@@ -303,6 +280,9 @@ io.on("connection", (socket) => {
     io.emit("updateUsers", connectedUsers);
   });
 });
+
+
+//******************************************* */
 
 server.on("error", errorHandler);
 server.on("listening", () => {
