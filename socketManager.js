@@ -172,10 +172,9 @@ const socketManager = (io, rooms, connectedUsers, games) => {
         game.aliveList = game.playersList.filter((p) => p.isAlive);
       }
       let winner = checkForWinner(game.aliveList);
-      if (winner != null) {
+      if (winner !== null) {
         winner.aliveList = game.aliveList;
-        game.winningTeam = winner;
-
+        
         setGames(games, game, io, roomId);
       }
     });
