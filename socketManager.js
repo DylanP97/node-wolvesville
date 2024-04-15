@@ -1,10 +1,13 @@
-
 const { checkForWinner } = require("./lib/gameActions");
 const { getCurrentTime } = require("./lib/utils");
 const { toVoteTime, toNightTime, toDayTime } = require("./lib/timeOfTheDay");
-const { initializeGameObject, initializePlayersList, setGames, editGame } = require("./lib/gameSetup");
+const {
+  initializeGameObject,
+  initializePlayersList,
+  setGames,
+  editGame,
+} = require("./lib/gameSetup");
 const { voteAgainst, wolfVoteAgainst } = require("./lib/gameActions/vote");
-
 
 const socketManager = (io, rooms, connectedUsers, games) => {
   io.on("connection", (socket) => {
@@ -70,7 +73,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           function updateGame() {
             game = games.find((room) => room.id === roomId);
 
-            if (game.winningTeam == null) {
+            if (game.winningTeam === null) {
               game.timeCounter -= 1000;
 
               if (game.timeCounter == 0) {
@@ -173,8 +176,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
       }
       let winner = checkForWinner(game.aliveList);
       if (winner !== null) {
-        winner.aliveList = game.aliveList;
-        
+        game.winningTeam = winner;
         setGames(games, game, io, roomId);
       }
     });
@@ -209,7 +211,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
     );
 
     socket.on("registerAction", (actionObject, roomId) => {
-        console.log("hi registerAction")
+      console.log("hi registerAction");
       let game = games.find((room) => room.id === roomId);
       game.registeredActions.push(actionObject);
       setGames(games, game, io, roomId);
