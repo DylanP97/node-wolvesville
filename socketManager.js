@@ -32,6 +32,10 @@ const socketManager = (io, rooms, connectedUsers, games) => {
       }
       io.emit("updateUsers", connectedUsers);
       socket.join(newRoom.id);
+
+      if (newRoom.usersInTheRoom.length == newRoom.nbrUserPlayers) {
+        startGame(newRoom, newRoom.id);
+      }
     });
 
     socket.on("joinRoom", (roomId, userJoining) => {
@@ -54,47 +58,52 @@ const socketManager = (io, rooms, connectedUsers, games) => {
         io.emit("updateUsers", connectedUsers);
         socket.join(roomId);
 
-        if (roomToJoin.usersInTheRoom.length == roomToJoin.nbrOfPlayers) {
-          const playersList = initializePlayersList(
-            roomToJoin.nbrOfPlayers,
-            roomToJoin.selectedRoles,
-            roomToJoin.usersInTheRoom
-          );
-          roomToJoin = initializeGameObject(roomToJoin, playersList);
-          const newRooms = rooms.filter((r) => r.id != roomId);
-          rooms = newRooms;
-          rooms.push(roomToJoin);
-          io.emit("updateRooms", rooms);
-          games.push(roomToJoin);
-          io.to(roomId).emit("launchRoom", roomToJoin);
-
-          let game;
-
-          function updateGame() {
-            game = games.find((room) => room.id === roomId);
-
-            if (game.winningTeam === null) {
-              game.timeCounter -= 1000;
-
-              if (game.timeCounter == 0) {
-                if (game.timeOfTheDay == "nighttime") toDayTime(game);
-                else if (game.timeOfTheDay == "daytime") toVoteTime(game);
-                else if (game.timeOfTheDay == "votetime") toNightTime(game);
-              }
-            }
-
-            const newGames = games.filter((r) => r.id != roomId);
-            games = newGames;
-            games.push(game);
-            io.to(roomId).emit("updateGame", game);
-            setTimeout(updateGame, 1000);
-          }
-          updateGame();
+        if (roomToJoin.usersInTheRoom.length == roomToJoin.nbrUserPlayers) {
+          startGame(roomToJoin, roomId);
         }
       } else {
         console.log("the room doesn't exist");
       }
     });
+
+    const startGame = (roomToJoin, roomId) => {
+      const playersList = initializePlayersList(
+        roomToJoin.nbrOfPlayers,
+        roomToJoin.selectedRoles,
+        roomToJoin.usersInTheRoom,
+        roomToJoin.nbrCPUPlayers
+      );
+      roomToJoin = initializeGameObject(roomToJoin, playersList);
+      const newRooms = rooms.filter((r) => r.id != roomId);
+      rooms = newRooms;
+      rooms.push(roomToJoin);
+      io.emit("updateRooms", rooms);
+      games.push(roomToJoin);
+      io.to(roomId).emit("launchRoom", roomToJoin);
+
+      let game;
+
+      function updateGame() {
+        game = games.find((room) => room.id === roomId);
+
+        if (game.winningTeam === null) {
+          game.timeCounter -= 1000;
+
+          if (game.timeCounter == 0) {
+            if (game.timeOfTheDay == "nighttime") toDayTime(game);
+            else if (game.timeOfTheDay == "daytime") toVoteTime(game);
+            else if (game.timeOfTheDay == "votetime") toNightTime(game);
+          }
+        }
+
+        const newGames = games.filter((r) => r.id != roomId);
+        games = newGames;
+        games.push(game);
+        io.to(roomId).emit("updateGame", game);
+        setTimeout(updateGame, 1000);
+      }
+      updateGame();
+    };
 
     socket.on("revealPlayer", (action, roomId) => {
       let game = games.find((room) => room.id === roomId);

@@ -22,7 +22,8 @@ const errorHandler = (error) => {
     throw error;
   }
   const address = server.address();
-  const bind = typeof address === "string" ? "pipe s" + address : "port: " + port;
+  const bind =
+    typeof address === "string" ? "pipe s" + address : "port: " + port;
   switch (error.code) {
     case "EACCES":
       console.error(bind + " requires elevated privileges.");
@@ -43,7 +44,6 @@ const io = socketIO(server, {
     methods: ["GET", "POST"],
   },
 });
-
 
 // server store
 let rooms = [];
