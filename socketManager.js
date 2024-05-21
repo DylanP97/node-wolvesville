@@ -13,7 +13,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
   io.on("connection", (socket) => {
     socket.on("sendNewConnectedUser", (user) => {
       connectedUsers.push(user);
-      console.log("A user connected " + user.username);
+      console.log("A user connected " + (user.username || user.name));
       io.emit("updateUsers", connectedUsers);
       io.emit("updateRooms", rooms);
     });
@@ -114,7 +114,6 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           action,
           `The seer's magical crystal ball unveiled the identity of ${action.selectedPlayerName}! 👁️`
         );
-
         setGames(games, game, io, roomId);
       }
     });
@@ -128,7 +127,6 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           action,
           `The jailer executed its last night prisoner named ${action.selectedPlayerName} 💀`
         );
-
         setGames(games, game, io, roomId);
       }
     });
@@ -137,7 +135,6 @@ const socketManager = (io, rooms, connectedUsers, games) => {
       let game = games.find((room) => room.id === roomId);
       if (game) {
         editGame(game, "heal", action);
-
         setGames(games, game, io, roomId);
       }
     });
@@ -151,7 +148,6 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           action,
           `The gunner shot ${action.selectedPlayerName}. 💀`
         );
-
         setGames(games, game, io, roomId);
       }
     });
@@ -160,7 +156,6 @@ const socketManager = (io, rooms, connectedUsers, games) => {
       let game = games.find((room) => room.id === roomId);
       if (game) {
         game.playersList = voteAgainst(selectedPlayerId, game.playersList, nbr);
-
         setGames(games, game, io, roomId);
       }
     });
@@ -173,7 +168,6 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           game.playersList,
           nbr
         );
-
         setGames(games, game, io, roomId);
       }
     });
@@ -214,7 +208,6 @@ const socketManager = (io, rooms, connectedUsers, games) => {
             msg: msg,
           });
         }
-
         setGames(games, game, io, roomId);
       }
     );
