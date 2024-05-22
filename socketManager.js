@@ -12,8 +12,10 @@ const { voteAgainst, wolfVoteAgainst } = require("./lib/gameActions/vote");
 const socketManager = (io, rooms, connectedUsers, games) => {
   io.on("connection", (socket) => {
     socket.on("sendNewConnectedUser", (user) => {
+      console.log((user.username || user.name) + " is connected");
+      // console.log("user: ", user);
       connectedUsers.push(user);
-      console.log("A user connected " + (user.username || user.name));
+      // console.log("connectedUsers: ", connectedUsers);
       io.emit("updateUsers", connectedUsers);
       io.emit("updateRooms", rooms);
     });
@@ -161,6 +163,8 @@ const socketManager = (io, rooms, connectedUsers, games) => {
     });
 
     socket.on("addWolfVote", (selectedPlayerId, nbr, roomId) => {
+      console.log("addWolfVote called");
+
       let game = games.find((room) => room.id === roomId);
       if (game) {
         game.playersList = wolfVoteAgainst(
