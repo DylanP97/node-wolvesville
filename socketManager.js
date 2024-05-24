@@ -172,6 +172,8 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           game.playersList,
           nbr
         );
+
+        console.log(game.playersList);
         setGames(games, game, io, roomId);
       }
     });
