@@ -120,7 +120,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
       }
     });
 
-    socket.on("killPrisoner", (action, roomId) => {
+    socket.on("executePrisoner", (action, roomId) => {
       let game = games.find((room) => room.id === roomId);
       if (game) {
         editGame(
