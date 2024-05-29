@@ -114,7 +114,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           game,
           "reveal",
           action,
-          `The seer's magical crystal ball unveiled the identity of ${action.selectedPlayerName}! 👁️`
+          `👁️ The seer's magical crystal ball unveiled the identity of ${action.selectedPlayerName}!`
         );
         setGames(games, game, io, roomId);
       }
@@ -127,7 +127,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           game,
           "execute",
           action,
-          `The jailer executed its last night prisoner named ${action.selectedPlayerName} 💀`
+          `💀 The jailer executed its last night prisoner named ${action.selectedPlayerName}`
         );
         setGames(games, game, io, roomId);
       }
@@ -148,7 +148,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           game,
           "shoot",
           action,
-          `The gunner shot ${action.selectedPlayerName}. 💀`
+          `💀 The gunner shot ${action.selectedPlayerName}.`
         );
         setGames(games, game, io, roomId);
       }
