@@ -88,24 +88,47 @@ const socketManager = (io, rooms, connectedUsers, games) => {
       function updateGame() {
         game = games.find((room) => room.id === roomId);
 
-        if (game.winningTeam === null) {
-          game.timeCounter -= 1000;
+        if (game.isPaused) {
+          console.log(`game ${roomId} game paused`);
+          setTimeout(updateGame, 1000);
+        } else {
+          if (game.winningTeam === null || !game.isPaused) {
+            game.timeCounter -= 1000;
 
-          if (game.timeCounter == 0) {
-            if (game.timeOfTheDay == "nighttime") toDayTime(game);
-            else if (game.timeOfTheDay == "daytime") toVoteTime(game);
-            else if (game.timeOfTheDay == "votetime") toNightTime(game);
+            if (game.timeCounter == 0) {
+              if (game.timeOfTheDay == "nighttime") toDayTime(game);
+              else if (game.timeOfTheDay == "daytime") toVoteTime(game);
+              else if (game.timeOfTheDay == "votetime") toNightTime(game);
+            }
           }
-        }
 
-        const newGames = games.filter((r) => r.id != roomId);
-        games = newGames;
-        games.push(game);
-        io.to(roomId).emit("updateGame", game);
-        setTimeout(updateGame, 1000);
+          const newGames = games.filter((r) => r.id != roomId);
+          games = newGames;
+          games.push(game);
+          io.to(roomId).emit("updateGame", game);
+          setTimeout(updateGame, 1000);
+        }
       }
       updateGame();
     };
+
+    socket.on("pauseGame", (roomId) => {
+      console.log("pauseGame fn");
+      let game = games.find((room) => room.id === roomId);
+      if (game) {
+        game.isPaused = true;
+        setGames(games, game, io, roomId);
+      }
+    });
+
+    socket.on("resumeGame", (roomId) => {
+      console.log("resumeGame fn");
+      let game = games.find((room) => room.id === roomId);
+      if (game) {
+        game.isPaused = false;
+        setGames(games, game, io, roomId);
+      }
+    });
 
     socket.on("revealPlayer", (action, roomId) => {
       let game = games.find((room) => room.id === roomId);
@@ -114,7 +137,10 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           game,
           "reveal",
           action,
-          `👁️ The seer's magical crystal ball unveiled the identity of ${action.selectedPlayerName}!`
+          `
+          {serverContent.action.message.seer}
+          ${action.selectedPlayerName}!
+          `
         );
         setGames(games, game, io, roomId);
       }
@@ -163,8 +189,6 @@ const socketManager = (io, rooms, connectedUsers, games) => {
     });
 
     socket.on("addWolfVote", (selectedPlayerId, nbr, roomId) => {
-      console.log("addWolfVote called");
-
       let game = games.find((room) => room.id === roomId);
       if (game) {
         game.playersList = wolfVoteAgainst(
@@ -172,8 +196,6 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           game.playersList,
           nbr
         );
-
-        console.log(game.playersList);
         setGames(games, game, io, roomId);
       }
     });
@@ -185,6 +207,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
       }
       let winner = checkForWinner(game.aliveList);
       if (winner !== null) {
+        game.isPaused = true;
         game.winningTeam = winner;
         setGames(games, game, io, roomId);
       }
