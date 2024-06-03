@@ -153,7 +153,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           game,
           "execute",
           action,
-          `💀 The jailer executed its last night prisoner named ${action.selectedPlayerName}`
+          `💀 The jailer executed its prisoner named ${action.selectedPlayerName}`
         );
         setGames(games, game, io, roomId);
       }
@@ -195,6 +195,22 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           selectedPlayerId,
           game.playersList,
           nbr
+        );
+        setGames(games, game, io, roomId);
+      }
+    });
+
+    socket.on("assertDuty", (mayorName, roomId) => {
+      let game = games.find((room) => room.id === roomId);
+      if (game) {
+        editGame(
+          game,
+          "assertDuty",
+          action,
+          `
+          {serverContent.action.message.mayorReveal}   
+          ${mayorName}
+          `
         );
         setGames(games, game, io, roomId);
       }
