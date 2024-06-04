@@ -206,12 +206,20 @@ const socketManager = (io, rooms, connectedUsers, games) => {
         editGame(
           game,
           "assertDuty",
-          action,
+          null,
           `
           {serverContent.action.message.mayorReveal}   
           ${mayorName}
           `
         );
+        setGames(games, game, io, roomId);
+      }
+    });
+
+    socket.on("chooseJuniorWolfDeathRevenge", (actionObj, roomId) => {
+      let game = games.find((room) => room.id === roomId);
+      if (game) {
+        editGame(game, "chooseJuniorWolfDeathRevenge", actionObj, null);
         setGames(games, game, io, roomId);
       }
     });
