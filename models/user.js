@@ -1,6 +1,6 @@
 const { isEmail } = require("validator");
 const mongoose = require("mongoose");
-const bcrypt = require('bcrypt');
+const bcrypt = require("bcrypt");
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -19,15 +19,32 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true,
+    maxLength: 250,
   },
   avatar: {
     type: Object,
-  }
+  },
+  resetPasswordToken: {
+    type: String,
+  },
+  resetPasswordExpires: {
+    type: Number,
+  },
 });
 
+let passwordRegExp = new RegExp(
+  "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$ %^&*-]).{6,100}$"
+);
+
 userSchema.pre("save", async function (next) {
-  let hash = await bcrypt.hash(this.password, 10);
-  this.password = hash;
+  if (passwordRegExp.test(this.password)) {
+    let hash = await bcrypt.hash(this.password, 10);
+    console.log("hash");
+    console.log(hash);
+    this.password = hash;
+  } else {
+    throw Error("incorrect password");
+  }
   next();
 });
 

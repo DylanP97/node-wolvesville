@@ -1,5 +1,12 @@
 const UserModel = require("../models/user");
 const { signUpErrors, signInErrors } = require("../middleware/errors");
+const bcrypt = require("bcrypt");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyAccessToken,
+} = require("../lib/utils");
+const { avatarCPUSample } = require("../lib/avatarCPUSample");
 
 exports.getUsers = async (req, res) => {
   try {
@@ -9,19 +16,52 @@ exports.getUsers = async (req, res) => {
     console.error("Error fetching users:", error);
     res.status(500).json({ success: false, error: "Internal Server Error" });
   }
-}
+};
 
 exports.signup = async (req, res) => {
   const username = req.body.username.trim();
   const email = req.body.email.trim();
   const { password } = req.body;
-  const defaultAvatar = req.body.defaultAvatar;
 
   try {
-    await UserModel.create({ username, email, password, avatar: defaultAvatar });
-    res.status(201).json({ message: "Utilisateur créé !" });
+    if (!username) {
+      return res.status(400).json({ message: "Please Input Username" });
+    }
+    if (!email) {
+      return res.status(400).json({ message: "Please Input Email" });
+    }
+    if (!password) {
+      return res.status(400).json({ message: "Please Input Password" });
+    }
+
+    const existingUsername = await UserModel.findOne({ username });
+
+    if (existingUsername) {
+      return res
+        .status(400)
+        .json({ message: "User with this Username Already Exists" });
+    }
+
+    const existingEmail = await UserModel.findOne({ email });
+
+    if (existingEmail) {
+      return res
+        .status(400)
+        .json({ message: "User with this Email Already Exists" });
+    }
+
+    const newUser = await UserModel.create({
+      username,
+      email,
+      password: password,
+      avatar: avatarCPUSample,
+    });
+
+    return res
+      .status(201)
+      .json({ message: "User Created Successfully", newUser });
   } catch (err) {
-    console.log(err)
+    console.log(err);
     const errors = signUpErrors(err);
     res.status(500).json({ errors });
   }
@@ -32,11 +72,53 @@ exports.login = async (req, res) => {
 
   try {
     const user = await UserModel.login(email, password);
-    res.status(200).json({ message: "Utilisateur log", username: user.username, avatar: user.avatar });
+    const accessToken = await generateAccessToken(user);
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+    });
+    res.status(200).json({
+      message: "Utilisateur log",
+      userId: user.id,
+      username: user.username,
+      avatar: user.avatar,
+    });
   } catch (err) {
-    console.log(err)
-    const errors = signInErrors(err);
-    res.status(500).json({ errors });
+    console.log(err);
+    res.status(500).json({ err });
+  }
+};
+
+exports.logout = (req, res) => {
+  res.clearCookie("accessToken");
+  res.status(200).json({ message: "logout success" });
+};
+
+exports.checkAuth = async (req, res) => {
+  try {
+    if (req.cookies) {
+      const accessToken = req.cookies.accessToken;
+      if (!accessToken) {
+        return res.status(401).json({ message: "No access token provided" });
+      }
+      const user = await verifyAccessToken(accessToken);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid access token" });
+      } else {
+        res.status(200).json({
+          message: "Token successfully checked",
+          username: user.username,
+          avatar: user.avatar,
+          socketId: user.socketId,
+        });
+      }
+    } else {
+      return res.status(401).json({ message: "No access token provided" });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 

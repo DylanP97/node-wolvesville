@@ -13,9 +13,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
   io.on("connection", (socket) => {
     socket.on("sendNewConnectedUser", (user) => {
       console.log((user.username || user.name) + " is connected");
-      // console.log("user: ", user);
       connectedUsers.push(user);
-      // console.log("connectedUsers: ", connectedUsers);
       io.emit("updateUsers", connectedUsers);
       io.emit("updateRooms", rooms);
     });
