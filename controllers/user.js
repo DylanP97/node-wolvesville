@@ -7,6 +7,7 @@ const {
   verifyAccessToken,
 } = require("../lib/utils");
 const { avatarCPUSample } = require("../lib/avatarCPUSample");
+const { connectedUsers } = require("../serverStore");
 
 exports.getUsers = async (req, res) => {
   try {
@@ -66,7 +67,6 @@ exports.signup = async (req, res) => {
     res.status(500).json({ errors });
   }
 };
-
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -79,10 +79,11 @@ exports.login = async (req, res) => {
       sameSite: "None",
     });
     res.status(200).json({
-      message: "Utilisateur log",
+      message: "User logged in",
       userId: user.id,
       username: user.username,
       avatar: user.avatar,
+      token: accessToken,
     });
   } catch (err) {
     console.log(err);
@@ -92,7 +93,7 @@ exports.login = async (req, res) => {
 
 exports.logout = (req, res) => {
   res.clearCookie("accessToken");
-  res.status(200).json({ message: "logout success" });
+  res.status(200).json({ message: "Logout success" });
 };
 
 exports.checkAuth = async (req, res) => {
@@ -106,11 +107,15 @@ exports.checkAuth = async (req, res) => {
       if (!user) {
         return res.status(401).json({ message: "Invalid access token" });
       } else {
+        let userOnServer = connectedUsers.find(
+          (usr) => usr.token === accessToken
+        );
         res.status(200).json({
           message: "Token successfully checked",
           username: user.username,
           avatar: user.avatar,
-          socketId: user.socketId,
+          token: req.cookies.accessToken,
+          socketId: userOnServer ? userOnServer.socketId : null,
         });
       }
     } else {

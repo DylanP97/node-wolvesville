@@ -2,10 +2,10 @@ const http = require("http");
 const app = require("./index");
 const socketIO = require("socket.io");
 const socketManager = require("./socketManager");
+const { connectedUsers, rooms, games } = require("./serverStore");
 
 const normalizePort = (val) => {
   const port = parseInt(val, 10);
-
   if (isNaN(port)) {
     return val;
   }
@@ -14,7 +14,7 @@ const normalizePort = (val) => {
   }
   return false;
 };
-const port = normalizePort(process.env.PORT);
+const port = normalizePort(process.env.PORT || 3000);
 app.set("port", port);
 
 const errorHandler = (error) => {
@@ -23,7 +23,7 @@ const errorHandler = (error) => {
   }
   const address = server.address();
   const bind =
-    typeof address === "string" ? "pipe s" + address : "port: " + port;
+    typeof address === "string" ? "pipe " + address : "port: " + port;
   switch (error.code) {
     case "EACCES":
       console.error(bind + " requires elevated privileges.");
@@ -45,14 +45,7 @@ const io = socketIO(server, {
   },
 });
 
-// server store
-let rooms = [];
-let connectedUsers = [];
-let games = [];
-
 socketManager(io, rooms, connectedUsers, games);
-
-//******************************************* */
 
 server.on("error", errorHandler);
 server.on("listening", () => {

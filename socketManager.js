@@ -12,10 +12,17 @@ const { voteAgainst, wolfVoteAgainst } = require("./lib/gameActions/vote");
 const socketManager = (io, rooms, connectedUsers, games) => {
   io.on("connection", (socket) => {
     socket.on("sendNewConnectedUser", (user) => {
+      console.log("sendNewConnectedUser", user);
       console.log((user.username || user.name) + " is connected");
-      connectedUsers.push(user);
+      const existingUserIndex = connectedUsers.findIndex(
+        (usr) => usr.username === user.username
+      );
+      if (existingUserIndex !== -1) {
+        connectedUsers[existingUserIndex].socketId = socket.id;
+      } else {
+        connectedUsers.push({ ...user, socketId: socket.id });
+      }
       io.emit("updateUsers", connectedUsers);
-      io.emit("updateRooms", rooms);
     });
 
     socket.on("createRoom", (newRoom) => {
@@ -277,12 +284,11 @@ const socketManager = (io, rooms, connectedUsers, games) => {
     });
 
     socket.on("disconnect", () => {
-      let user = connectedUsers.indexOf(
-        connectedUsers.find((user) => user.socketId == socket.id)
+      connectedUsers = connectedUsers.filter(
+        (usr) => usr.socketId !== socket.id
       );
-      console.log("User disconnected " + socket.id);
-      connectedUsers.splice(user, 1);
       io.emit("updateUsers", connectedUsers);
+      console.log("User disconnected " + socket.id);
     });
   });
 };
