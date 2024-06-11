@@ -11,9 +11,23 @@ const { voteAgainst, wolfVoteAgainst } = require("./lib/gameActions/vote");
 
 const socketManager = (io, rooms, connectedUsers, games) => {
   io.on("connection", (socket) => {
+    // Extract the token from the query parameters
+    const token = socket.handshake.query.token;
+
+    // io.emit("updateUsers", connectedUsers);
+    // io.emit("updateRooms", rooms);
+
+    // verify if the user is already connected and having a socket change, if yes just updated his socketId
+    if (connectedUsers.some((usr) => usr.token === token)) {
+      let user = connectedUsers.find((usr) => usr.token === token);
+      connectedUsers = connectedUsers.filter((usr) => usr.token !== token);
+      connectedUsers.push({ ...user, socketId: socket.id });
+      io.emit("updateUsers", connectedUsers);
+    }
+
     socket.on("sendNewConnectedUser", (user) => {
-      console.log("sendNewConnectedUser", user);
-      console.log((user.username || user.name) + " is connected");
+      console.log("new connected user");
+      console.log((user.username || user.name) + " is connected " + socket.id);
       const existingUserIndex = connectedUsers.findIndex(
         (usr) => usr.username === user.username
       );
@@ -23,6 +37,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
         connectedUsers.push({ ...user, socketId: socket.id });
       }
       io.emit("updateUsers", connectedUsers);
+      io.emit("updateRooms", rooms); // this is to send the state of all rooms to a newly connected user
     });
 
     socket.on("createRoom", (newRoom) => {
@@ -90,11 +105,11 @@ const socketManager = (io, rooms, connectedUsers, games) => {
 
       let game;
 
+      // console.log(`game ${roomId} is paused`);
       function updateGame() {
         game = games.find((room) => room.id === roomId);
 
         if (game.isPaused) {
-          console.log(`game ${roomId} game paused`);
           setTimeout(updateGame, 1000);
         } else {
           if (game.winningTeam === null || !game.isPaused) {
@@ -158,7 +173,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           game,
           "execute",
           action,
-          `💀 The jailer executed its prisoner named ${action.selectedPlayerName}`
+          `💀👮‍♂️ The jailer executed its prisoner named ${action.selectedPlayerName}`
         );
         setGames(games, game, io, roomId);
       }
@@ -271,7 +286,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
     );
 
     socket.on("registerAction", (actionObject, roomId) => {
-      console.log("hi registerAction");
+      console.log("registerAction fn");
       let game = games.find((room) => room.id === roomId);
       game.registeredActions.push(actionObject);
       setGames(games, game, io, roomId);
@@ -281,14 +296,22 @@ const socketManager = (io, rooms, connectedUsers, games) => {
       updatedRooms = rooms.filter((room) => room.id !== roomId);
       rooms = updatedRooms;
       io.emit("updateRooms", rooms);
+      console.log("connectedUsers when deleteRoom:");
+      console.log(connectedUsers);
+      io.emit("updateUsers", connectedUsers);
     });
 
     socket.on("disconnect", () => {
+      console.log("User disconnected " + socket.id);
+    });
+
+    socket.on("logout", () => {
       connectedUsers = connectedUsers.filter(
         (usr) => usr.socketId !== socket.id
       );
       io.emit("updateUsers", connectedUsers);
-      console.log("User disconnected " + socket.id);
+      console.log("connectedUsers on logout:");
+      console.log(connectedUsers);
     });
   });
 };
