@@ -9,7 +9,7 @@ const {
 const { avatarCPUSample } = require("../lib/avatarCPUSample");
 const { connectedUsers } = require("../serverStore");
 
-exports.getUsers = async (req, res) => {
+exports.getAllUsers = async (req, res) => {
   try {
     const users = await UserModel.find();
     res.status(200).json({ success: true, data: users });

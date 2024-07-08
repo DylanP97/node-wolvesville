@@ -112,7 +112,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
         if (game.isPaused) {
           setTimeout(updateGame, 1000);
         } else {
-          if (game.winningTeam === null || !game.isPaused) {
+          if (game.winningTeam === null) {
             game.timeCounter -= 1000;
 
             if (game.timeCounter == 0) {
@@ -120,6 +120,10 @@ const socketManager = (io, rooms, connectedUsers, games) => {
               else if (game.timeOfTheDay == "daytime") toVoteTime(game);
               else if (game.timeOfTheDay == "votetime") toNightTime(game);
             }
+          } else {
+            console.log("and the winner is...");
+            console.log(game.winningTeam);
+            game.isPaused = true;
           }
 
           const newGames = games.filter((r) => r.id != roomId);
@@ -173,7 +177,8 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           game,
           "execute",
           action,
-          `💀👮‍♂️ The jailer executed its prisoner named ${action.selectedPlayerName}`
+          `{serverContent.action.message.executePrisoner} 
+          ${action.selectedPlayerName}!`
         );
         setGames(games, game, io, roomId);
       }
@@ -194,7 +199,7 @@ const socketManager = (io, rooms, connectedUsers, games) => {
           game,
           "shoot",
           action,
-          `💀 The gunner shot ${action.selectedPlayerName}.`
+          `{serverContent.action.message.shootBullet} ${action.selectedPlayerName}.`
         );
         setGames(games, game, io, roomId);
       }
@@ -251,7 +256,6 @@ const socketManager = (io, rooms, connectedUsers, games) => {
       }
       let winner = checkForWinner(game.aliveList);
       if (winner !== null) {
-        game.isPaused = true;
         game.winningTeam = winner;
         setGames(games, game, io, roomId);
       }
@@ -259,10 +263,22 @@ const socketManager = (io, rooms, connectedUsers, games) => {
 
     socket.on(
       "sendMessage",
-      (msg, roomId, username, isWolvesChat, isJailerChat, isJailer) => {
+      (
+        msg,
+        roomId,
+        username,
+        isWolvesChat,
+        isJailerChat,
+        isJailer,
+        language
+      ) => {
         let game = games.find((room) => room.id === roomId);
         if (isJailerChat) {
-          const authorN = isJailer ? "Jailer" : username;
+          const authorN = isJailer
+            ? language === "fr"
+              ? "Géôlier"
+              : "Jailer"
+            : username;
           game.jailNightMessages.unshift({
             time: getCurrentTime(),
             author: authorN,
