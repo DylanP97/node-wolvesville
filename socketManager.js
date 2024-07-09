@@ -109,7 +109,9 @@ const socketManager = (io, rooms, connectedUsers, games) => {
       function updateGame() {
         game = games.find((room) => room.id === roomId);
 
-        if (game.isPaused) {
+        if (game.hasEnded) {
+          console.log("the game has ended");
+        } else if (game.isPaused) {
           setTimeout(updateGame, 1000);
         } else {
           if (game.winningTeam === null) {
@@ -141,6 +143,15 @@ const socketManager = (io, rooms, connectedUsers, games) => {
       let game = games.find((room) => room.id === roomId);
       if (game) {
         game.isPaused = true;
+        setGames(games, game, io, roomId);
+      }
+    });
+
+    socket.on("endGame", (roomId) => {
+      console.log("endGame fn");
+      let game = games.find((room) => room.id === roomId);
+      if (game) {
+        game.hasEnded = true;
         setGames(games, game, io, roomId);
       }
     });
