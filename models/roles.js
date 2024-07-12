@@ -13,7 +13,7 @@ const rolesSchema = new mongoose.Schema({
     type: Boolean,
     required: true,
   },
-  canPerform: {
+  canPerform1: {
     label: {
       type: String,
       required: false,
