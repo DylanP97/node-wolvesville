@@ -138,6 +138,20 @@ const socketManager = (io, rooms, connectedUsers, games) => {
       updateGame();
     };
 
+    socket.on("updateUserInfoOnServer", (username, newIsInRoom) => {
+      console.log("updateUserInfoOnServer fn");
+      let userIndex = connectedUsers.findIndex(
+        (usr) => usr.username === username
+      );
+      if (userIndex !== -1) {
+        connectedUsers[userIndex] = {
+          ...connectedUsers[userIndex],
+          isInRoom: newIsInRoom,
+        };
+      }
+      io.emit("updateUsers", connectedUsers);
+    });
+
     socket.on("pauseGame", (roomId) => {
       console.log("pauseGame fn");
       let game = games.find((room) => room.id === roomId);
