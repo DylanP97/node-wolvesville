@@ -5,6 +5,7 @@ const {
   generateAccessToken,
   generateRefreshToken,
   verifyAccessToken,
+  defaultAvatar,
 } = require("../lib/utils");
 const { avatarCPUSample } = require("../lib/avatarCPUSample");
 const { connectedUsers } = require("../serverStore");
@@ -67,6 +68,7 @@ exports.signup = async (req, res) => {
     res.status(500).json({ errors });
   }
 };
+
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -83,6 +85,30 @@ exports.login = async (req, res) => {
       userId: user.id,
       username: user.username,
       avatar: user.avatar,
+      token: accessToken,
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ err });
+  }
+};
+
+exports.guestLogin = async (req, res) => {
+  // const { email, password } = req.body;
+
+  try {
+    // const user = await UserModel.login(email, password);
+    const accessToken = await generateAccessToken(user);  
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+    });
+    res.status(200).json({
+      message: "User logged in",
+      userId: user.id,
+      username: "Guest_" + Date.now(),
+      avatar: defaultAvatar,
       token: accessToken,
     });
   } catch (err) {
