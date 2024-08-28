@@ -1,3 +1,4 @@
+const { v4: uuidv4 } = require('uuid');
 const UserModel = require("../models/user");
 const { signUpErrors, signInErrors } = require("../middleware/errors");
 const bcrypt = require("bcrypt");
@@ -94,11 +95,10 @@ exports.login = async (req, res) => {
 };
 
 exports.guestLogin = async (req, res) => {
-  // const { email, password } = req.body;
+  const userId = uuidv4();
 
   try {
-    // const user = await UserModel.login(email, password);
-    const accessToken = await generateAccessToken(user);  
+    const accessToken = await generateAccessToken(userId);  
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: true,
@@ -106,7 +106,7 @@ exports.guestLogin = async (req, res) => {
     });
     res.status(200).json({
       message: "User logged in",
-      userId: user.id,
+      userId: userId,
       username: "Guest_" + Date.now(),
       avatar: defaultAvatar,
       token: accessToken,
