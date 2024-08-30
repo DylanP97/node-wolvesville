@@ -51,8 +51,6 @@ let passwordRegExp = new RegExp(
 userSchema.pre("save", async function (next) {
   if (passwordRegExp.test(this.password)) {
     let hash = await bcrypt.hash(this.password, 10);
-    console.log("hash");
-    console.log(hash);
     this.password = hash;
   } else {
     throw Error("incorrect password");

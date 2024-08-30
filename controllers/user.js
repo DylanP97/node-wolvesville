@@ -1,14 +1,11 @@
 const crypto = require("crypto");
 const { UserModel, GuestUserModel } = require("../models/user");
 const { signUpErrors, signInErrors } = require("../middleware/errors");
-const bcrypt = require("bcrypt");
 const {
   generateAccessToken,
-  generateRefreshToken,
   verifyAccessToken,
   defaultAvatar,
 } = require("../lib/utils");
-const { avatarCPUSample } = require("../lib/avatarCPUSample");
 const { connectedUsers } = require("../serverStore");
 
 exports.getAllUsers = async (req, res) => {
@@ -57,7 +54,7 @@ exports.signup = async (req, res) => {
       username,
       email,
       password: password,
-      avatar: avatarCPUSample,
+      avatar: defaultAvatar,
     });
 
     return res
@@ -75,7 +72,6 @@ exports.login = async (req, res) => {
 
   try {
     const user = await UserModel.login(email, password);
-    console.log("user", user);
     const accessToken = await generateAccessToken(user);
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
@@ -97,8 +93,9 @@ exports.login = async (req, res) => {
 
 exports.guestLogin = async (req, res) => {
   try {
+    const currentTime = new Date().toLocaleTimeString().replace(/:/g, '');
     const user = await GuestUserModel.create({
-      username: "Guest_" + Date.now(),
+      username: "Guest_" + currentTime,
       avatar: defaultAvatar,
     });
     const accessToken = await generateAccessToken(user);
