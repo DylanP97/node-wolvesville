@@ -32,6 +32,18 @@ const userSchema = new mongoose.Schema({
   },
 });
 
+const guestUserSchema = new mongoose.Schema({
+  username: {
+    type: String,
+    minLength: 2,
+    maxLength: 55,
+    required: true,
+  },
+  avatar: {
+    type: Object,
+  },
+});
+
 let passwordRegExp = new RegExp(
   "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$ %^&*-]).{6,100}$"
 );
@@ -63,5 +75,9 @@ userSchema.statics.login = async function (email, password) {
 };
 
 const UserModel = mongoose.model("user", userSchema);
+const GuestUserModel = mongoose.model("guestUser", guestUserSchema);
 
-module.exports = UserModel;
+module.exports = {
+  UserModel,
+  GuestUserModel
+};

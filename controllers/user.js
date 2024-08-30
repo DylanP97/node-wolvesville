@@ -1,5 +1,5 @@
-const { v4: uuidv4 } = require('uuid');
-const UserModel = require("../models/user");
+const crypto = require("crypto");
+const { UserModel, GuestUserModel } = require("../models/user");
 const { signUpErrors, signInErrors } = require("../middleware/errors");
 const bcrypt = require("bcrypt");
 const {
@@ -75,6 +75,7 @@ exports.login = async (req, res) => {
 
   try {
     const user = await UserModel.login(email, password);
+    console.log("user", user);
     const accessToken = await generateAccessToken(user);
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
@@ -95,10 +96,12 @@ exports.login = async (req, res) => {
 };
 
 exports.guestLogin = async (req, res) => {
-  const userId = uuidv4();
-
   try {
-    const accessToken = await generateAccessToken(userId);  
+    const user = await GuestUserModel.create({
+      username: "Guest_" + Date.now(),
+      avatar: defaultAvatar,
+    });
+    const accessToken = await generateAccessToken(user);
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: true,
@@ -106,8 +109,8 @@ exports.guestLogin = async (req, res) => {
     });
     res.status(200).json({
       message: "User logged in",
-      userId: userId,
-      username: "Guest_" + Date.now(),
+      userId: user.id,
+      username: user.username,
       avatar: defaultAvatar,
       token: accessToken,
     });
@@ -132,6 +135,7 @@ exports.checkAuth = async (req, res) => {
   try {
     if (req.cookies) {
       const accessToken = req.cookies.accessToken;
+
       if (!accessToken) {
         return res.status(401).json({ message: "No access token provided" });
       }
