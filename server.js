@@ -2,7 +2,7 @@ const http = require("http");
 const app = require("./index");
 const socketIO = require("socket.io");
 const socketManager = require("./socketManager");
-const { connectedUsers, rooms, games } = require("./serverStore");
+const { connectedUsers, rooms } = require("./serverStore");
 
 const normalizePort = (val) => {
   const port = parseInt(val, 10);
@@ -45,7 +45,7 @@ const io = socketIO(server, {
   },
 });
 
-socketManager(io, rooms, connectedUsers, games);
+socketManager(io, rooms, connectedUsers);
 
 server.on("error", errorHandler);
 server.on("listening", () => {

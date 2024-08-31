@@ -93,7 +93,7 @@ exports.login = async (req, res) => {
 
 exports.guestLogin = async (req, res) => {
   try {
-    const currentTime = new Date().toLocaleTimeString().replace(/:/g, '');
+    const currentTime = new Date().toLocaleTimeString().replace(/:/g, "");
     const user = await GuestUserModel.create({
       username: "Guest_" + currentTime,
       avatar: defaultAvatar,
@@ -148,7 +148,11 @@ exports.checkAuth = async (req, res) => {
           username: user.username,
           avatar: user.avatar,
           token: req.cookies.accessToken,
-          socketId: userOnServer ? userOnServer.socketId : null,
+          socketId: userOnServer.socketId,
+          isGuest: userOnServer.isGuest,
+          isInRoom: userOnServer.isInRoom,
+          isPlaying: userOnServer.isPlaying,
+          // game:  userOnServer.game, // il faudrait renvoyer son game en cours
         });
       }
     } else {
