@@ -11,17 +11,10 @@ const { voteAgainst, wolfVoteAgainst } = require("./lib/gameActions/vote");
 
 const socketManager = (io, rooms, connectedUsers) => {
   io.on("connection", (socket) => {
-    console.log("rooms");
-    console.log(rooms);
-
-    // console.log("connectedUsers");
-    // console.log(connectedUsers);
-
-    // Extract the token from the query parameters
     const token = socket.handshake.query.token;
 
-    // io.emit("updateUsers", connectedUsers);
-    // io.emit("updateRooms", rooms);
+    console.log("verify rooms ");
+    console.log(rooms)
 
     // verify if the user is already connected and having a socket change, if yes just updated his socketId
     if (connectedUsers.some((usr) => usr.token === token)) {
@@ -42,7 +35,7 @@ const socketManager = (io, rooms, connectedUsers) => {
         connectedUsers.push({ ...user, socketId: socket.id });
       }
       io.emit("updateUsers", connectedUsers);
-      io.emit("updateRooms", rooms); // this is to send the state of all rooms to a newly connected user
+      io.emit("updateRooms", rooms);
     });
 
     socket.on("createRoom", (newRoom) => {
@@ -103,10 +96,11 @@ const socketManager = (io, rooms, connectedUsers) => {
         roomToJoin.nbrCPUPlayers
       );
       roomToJoin = initializeGameObject(roomToJoin, playersList);
-      const newRooms = rooms.filter((r) => r.id != roomId);
-      rooms = newRooms;
-      rooms.push(roomToJoin);
-      io.emit("updateRooms", rooms);
+      const roomIndex = rooms.findIndex((r) => r.id === roomId);
+      if (roomIndex !== -1) {
+        rooms[roomIndex] = roomToJoin;
+        io.emit("updateRooms", rooms);
+      }
       io.to(roomId).emit("launchRoom", roomToJoin);
 
       let game;
@@ -132,10 +126,11 @@ const socketManager = (io, rooms, connectedUsers) => {
             game.isPaused = true;
           }
 
-          const newRooms = rooms.filter((r) => r.id != roomId);
-          rooms = newRooms;
-          rooms.push(game);
-          io.to(roomId).emit("updateGame", game);
+          const roomIndex = rooms.findIndex((r) => r.id === roomId);
+          if (roomIndex !== -1) {
+            rooms[roomIndex] = game;
+            io.to(roomId).emit("updateGame", game);
+          }
           setTimeout(updateGame, 1000);
         }
       }

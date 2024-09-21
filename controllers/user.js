@@ -6,7 +6,7 @@ const {
   verifyAccessToken,
   defaultAvatar,
 } = require("../lib/utils");
-const { connectedUsers } = require("../serverStore");
+const { connectedUsers, rooms } = require("../serverStore");
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -143,6 +143,10 @@ exports.checkAuth = async (req, res) => {
         let userOnServer = connectedUsers.find(
           (usr) => usr.token === accessToken
         );
+        let gameOnServer = rooms.find(
+          (room) => room.id === userOnServer.isInRoom
+        );
+        
         res.status(200).json({
           message: "Token successfully checked",
           username: user.username,
@@ -152,7 +156,7 @@ exports.checkAuth = async (req, res) => {
           isGuest: userOnServer.isGuest,
           isInRoom: userOnServer.isInRoom,
           isPlaying: userOnServer.isPlaying,
-          // game:  userOnServer.game, // il faudrait renvoyer son game en cours
+          game:  userOnServer.isInRoom ? gameOnServer : null,
         });
       }
     } else {
