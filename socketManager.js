@@ -8,13 +8,14 @@ const {
   editGame,
 } = require("./lib/gameSetup");
 const { voteAgainst, wolfVoteAgainst } = require("./lib/gameActions/vote");
+const { getRolesDataForQuickGame } = require("./controllers/roles");
 
 const socketManager = (io, rooms, connectedUsers) => {
   io.on("connection", (socket) => {
     const token = socket.handshake.query.token;
 
-    console.log("verify rooms ");
-    console.log(rooms)
+    // console.log("verify rooms stored in server");
+    // console.log(rooms);
 
     // verify if the user is already connected and having a socket change, if yes just updated his socketId
     if (connectedUsers.some((usr) => usr.token === token)) {
@@ -39,6 +40,9 @@ const socketManager = (io, rooms, connectedUsers) => {
     });
 
     socket.on("createRoom", (newRoom) => {
+      console.log("newRoom à quoi ça ressemble dans createRoom ?");
+      console.log(newRoom);
+
       rooms.push(newRoom);
       io.emit("updateRooms", rooms);
       let userIndex = connectedUsers.findIndex(
@@ -86,6 +90,43 @@ const socketManager = (io, rooms, connectedUsers) => {
       } else {
         console.log("the room doesn't exist");
       }
+    });
+
+    socket.on("startQuickGame", async (username, socketId, avatar) => {
+      const rolesData = await getRolesDataForQuickGame(); // Await the function call
+
+      let newQuickRoom = {
+        id: Date.now(),
+        name: `Quick Game`,
+        createdBy: username,
+        nbrOfPlayers: 10,
+        nbrUserPlayers: 1,
+        nbrCPUPlayers: 9,
+        selectedRoles: rolesData,
+        usersInTheRoom: [{ username, socketId, avatar }],
+        isLaunched: false,
+      };
+
+      // update array list of users both in server and client
+      let userIndex = connectedUsers.findIndex(
+        (usr) => usr.username === username
+      );
+      if (userIndex !== -1) {
+        connectedUsers[userIndex] = {
+          ...connectedUsers[userIndex],
+          isInRoom: newQuickRoom.id,
+          isPlaying: true,
+        };
+      }
+      io.emit("updateUsers", connectedUsers);
+      socket.join(newQuickRoom.id);
+
+      // update array list of rooms both in server and client
+      rooms.push(newQuickRoom);
+      io.emit("updateRooms", rooms);
+
+      // launch game
+      startGame(newQuickRoom, newQuickRoom.id);
     });
 
     const startGame = (roomToJoin, roomId) => {
@@ -140,7 +181,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     socket.on(
       "updateUserGameState",
       (username, newIsInRoom, newIsPlaying, newGame) => {
-        console.log("updateUserGameState fn");
+        // console.log("updateUserGameState fn");
         let userIndex = connectedUsers.findIndex(
           (usr) => usr.username === username
         );
@@ -157,7 +198,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     );
 
     socket.on("pauseGame", (roomId) => {
-      console.log("pauseGame fn");
+      // console.log("pauseGame fn");
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
         game.isPaused = true;
@@ -166,7 +207,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     });
 
     socket.on("endGame", (roomId) => {
-      console.log("endGame fn");
+      // console.log("endGame fn");
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
         game.hasEnded = true;
@@ -175,7 +216,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     });
 
     socket.on("resumeGame", (roomId) => {
-      console.log("resumeGame fn");
+      // console.log("resumeGame fn");
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
         game.isPaused = false;
@@ -331,7 +372,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     );
 
     socket.on("registerAction", (actionObject, roomId) => {
-      console.log("registerAction fn");
+      // console.log("registerAction fn");
       let game = rooms.find((room) => room.id === roomId);
       game.registeredActions.push(actionObject);
       setRooms(rooms, game, io, roomId);
@@ -341,8 +382,8 @@ const socketManager = (io, rooms, connectedUsers) => {
       updatedRooms = rooms.filter((room) => room.id !== roomId);
       rooms = updatedRooms;
       io.emit("updateRooms", rooms);
-      console.log("connectedUsers when deleteRoom:");
-      console.log(connectedUsers);
+      // console.log("connectedUsers when deleteRoom:");
+      // console.log(connectedUsers);
       io.emit("updateUsers", connectedUsers);
     });
 
@@ -355,8 +396,8 @@ const socketManager = (io, rooms, connectedUsers) => {
         (usr) => usr.socketId !== socket.id
       );
       io.emit("updateUsers", connectedUsers);
-      console.log("connectedUsers on logout:");
-      console.log(connectedUsers);
+      // console.log("connectedUsers on logout:");
+      // console.log(connectedUsers);
     });
   });
 };

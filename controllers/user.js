@@ -93,7 +93,7 @@ exports.login = async (req, res) => {
 
 exports.guestLogin = async (req, res) => {
   try {
-    const currentTime = new Date().toLocaleTimeString().replace(/:/g, "");
+    const currentTime = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + new Date().getMilliseconds();
     const user = await GuestUserModel.create({
       username: "Guest_" + currentTime,
       avatar: defaultAvatar,
