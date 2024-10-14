@@ -93,7 +93,9 @@ exports.login = async (req, res) => {
 
 exports.guestLogin = async (req, res) => {
   try {
-    const currentTime = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + new Date().getMilliseconds();
+    const currentTime =
+      new Date().toISOString().replace(/[-:]/g, "").split(".")[0] +
+      new Date().getMilliseconds();
     const user = await GuestUserModel.create({
       username: "Guest_" + currentTime,
       avatar: defaultAvatar,
@@ -140,24 +142,30 @@ exports.checkAuth = async (req, res) => {
       if (!user) {
         return res.status(401).json({ message: "Invalid access token" });
       } else {
-        let userOnServer = connectedUsers.find(
-          (usr) => usr.token === accessToken
-        );
-        let gameOnServer = rooms.find(
-          (room) => room.id === userOnServer.isInRoom
-        );
-        
-        res.status(200).json({
-          message: "Token successfully checked",
-          username: user.username,
-          avatar: user.avatar,
-          token: req.cookies.accessToken,
-          socketId: userOnServer.socketId,
-          isGuest: userOnServer.isGuest,
-          isInRoom: userOnServer.isInRoom,
-          isPlaying: userOnServer.isPlaying,
-          game:  userOnServer.isInRoom ? gameOnServer : null,
-        });
+        if (connectedUsers.some((usr) => usr.token === accessToken)) {
+          let userOnServer = connectedUsers.find(
+            (usr) => usr.token === accessToken
+          );
+
+          let gameOnServer = null;
+          if (userOnServer.isInRoom) {
+            gameOnServer = rooms.find(
+              (room) => room.id === userOnServer.isInRoom
+            );
+          }
+
+          res.status(200).json({
+            message: "Token successfully checked",
+            username: user.username,
+            avatar: user.avatar,
+            token: req.cookies.accessToken,
+            socketId: userOnServer.socketId,
+            isGuest: userOnServer.isGuest,
+            isInRoom: userOnServer.isInRoom,
+            isPlaying: userOnServer.isPlaying,
+            game: gameOnServer,
+          });
+        }
       }
     } else {
       return res.status(401).json({ message: "No access token provided" });

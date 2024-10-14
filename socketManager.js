@@ -14,6 +14,57 @@ const socketManager = (io, rooms, connectedUsers) => {
   io.on("connection", (socket) => {
     const token = socket.handshake.query.token;
 
+    const updateGame = (game) => {
+      if (game.hasEnded) {
+        console.log("the game has ended");
+      } else if (game.isPaused) {
+        console.log("the game is paused");
+        setTimeout(() => updateGame(game), 1000);
+      } else {
+        if (game.winningTeam === null) {
+          game.timeCounter -= 1000;
+
+          if (game.timeCounter == 0) {
+            if (game.timeOfTheDay == "nighttime") toDayTime(game);
+            else if (game.timeOfTheDay == "daytime") toVoteTime(game);
+            else if (game.timeOfTheDay == "votetime") toNightTime(game);
+          }
+        } else {
+          console.log("and the winner is...");
+          console.log(game.winningTeam);
+          game.isPaused = true;
+        }
+
+        const roomIndex = rooms.findIndex((r) => r.id === game.id);
+        if (roomIndex !== -1) {
+          rooms[roomIndex] = game;
+          io.to(game.id).emit("updateGame", game);
+        }
+
+        setTimeout(() => updateGame(game), 1000);
+      }
+    };
+
+    const startGame = (roomToJoin, roomId) => {
+      const playersList = initializePlayersList(
+        roomToJoin.nbrOfPlayers,
+        roomToJoin.selectedRoles,
+        roomToJoin.usersInTheRoom,
+        roomToJoin.nbrCPUPlayers
+      );
+      roomToJoin = initializeGameObject(roomToJoin, playersList);
+      const roomIndex = rooms.findIndex((r) => r.id === roomId);
+      if (roomIndex !== -1) {
+        rooms[roomIndex] = roomToJoin;
+        io.emit("updateRooms", rooms);
+      }
+      io.to(roomId).emit("launchRoom", roomToJoin);
+
+      let game;
+      game = rooms.find((r) => r.id === roomId);
+      if (game) updateGame(game);
+    };
+
     // console.log("verify rooms stored in server");
     // console.log(rooms);
 
@@ -23,6 +74,14 @@ const socketManager = (io, rooms, connectedUsers) => {
       connectedUsers = connectedUsers.filter((usr) => usr.token !== token);
       connectedUsers.push({ ...user, socketId: socket.id });
       io.emit("updateUsers", connectedUsers);
+      if (user.isInRoom && user.isPlaying) {
+        socket.join(user.isInRoom);
+        let game = rooms.find((r) => r.id === user.isInRoom);
+        if (game) {
+          // Send current game state to the reconnected client immediately
+          socket.emit("updateGame", game);
+        }
+      }
     }
 
     socket.on("sendNewConnectedUser", (user) => {
@@ -40,9 +99,6 @@ const socketManager = (io, rooms, connectedUsers) => {
     });
 
     socket.on("createRoom", (newRoom) => {
-      console.log("newRoom à quoi ça ressemble dans createRoom ?");
-      console.log(newRoom);
-
       rooms.push(newRoom);
       io.emit("updateRooms", rooms);
       let userIndex = connectedUsers.findIndex(
@@ -128,55 +184,6 @@ const socketManager = (io, rooms, connectedUsers) => {
       // launch game
       startGame(newQuickRoom, newQuickRoom.id);
     });
-
-    const startGame = (roomToJoin, roomId) => {
-      const playersList = initializePlayersList(
-        roomToJoin.nbrOfPlayers,
-        roomToJoin.selectedRoles,
-        roomToJoin.usersInTheRoom,
-        roomToJoin.nbrCPUPlayers
-      );
-      roomToJoin = initializeGameObject(roomToJoin, playersList);
-      const roomIndex = rooms.findIndex((r) => r.id === roomId);
-      if (roomIndex !== -1) {
-        rooms[roomIndex] = roomToJoin;
-        io.emit("updateRooms", rooms);
-      }
-      io.to(roomId).emit("launchRoom", roomToJoin);
-
-      let game;
-      function updateGame() {
-        game = rooms.find((r) => r.id === roomId);
-
-        if (game.hasEnded) {
-          console.log("the game has ended");
-        } else if (game.isPaused) {
-          setTimeout(updateGame, 1000);
-        } else {
-          if (game.winningTeam === null) {
-            game.timeCounter -= 1000;
-
-            if (game.timeCounter == 0) {
-              if (game.timeOfTheDay == "nighttime") toDayTime(game);
-              else if (game.timeOfTheDay == "daytime") toVoteTime(game);
-              else if (game.timeOfTheDay == "votetime") toNightTime(game);
-            }
-          } else {
-            console.log("and the winner is...");
-            console.log(game.winningTeam);
-            game.isPaused = true;
-          }
-
-          const roomIndex = rooms.findIndex((r) => r.id === roomId);
-          if (roomIndex !== -1) {
-            rooms[roomIndex] = game;
-            io.to(roomId).emit("updateGame", game);
-          }
-          setTimeout(updateGame, 1000);
-        }
-      }
-      updateGame();
-    };
 
     socket.on(
       "updateUserGameState",
