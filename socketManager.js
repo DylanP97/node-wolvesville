@@ -270,6 +270,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     });
 
     socket.on("shootBullet", (action, roomId) => {
+      console.log("shootBullet fn");
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
         editGame(
