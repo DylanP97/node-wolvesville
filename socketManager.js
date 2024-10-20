@@ -17,8 +17,8 @@ const socketManager = (io, rooms, connectedUsers) => {
     const updateGame = (game) => {
       if (game.hasEnded) {
         console.log("the game has ended");
+        return;
       } else if (game.isPaused) {
-        console.log("the game is paused");
         setTimeout(() => updateGame(game), 1000);
       } else {
         if (game.winningTeam === null) {
@@ -42,6 +42,8 @@ const socketManager = (io, rooms, connectedUsers) => {
         }
 
         setTimeout(() => updateGame(game), 1000);
+        console.log("hi there");
+        return;
       }
     };
 
@@ -64,9 +66,6 @@ const socketManager = (io, rooms, connectedUsers) => {
       game = rooms.find((r) => r.id === roomId);
       if (game) updateGame(game);
     };
-
-    // console.log("verify rooms stored in server");
-    // console.log(rooms);
 
     // verify if the user is already connected and having a socket change, if yes just updated his socketId
     if (connectedUsers.some((usr) => usr.token === token)) {
@@ -214,7 +213,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     });
 
     socket.on("endGame", (roomId) => {
-      // console.log("endGame fn");
+      console.log("endGame fn");
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
         game.hasEnded = true;
@@ -329,7 +328,7 @@ const socketManager = (io, rooms, connectedUsers) => {
 
     socket.on("checkForWinner", (roomId) => {
       let game = rooms.find((room) => room.id === roomId);
-      if (game.aliveList == null) {
+      if (game.aliveList === null) {
         game.aliveList = game.playersList.filter((p) => p.isAlive);
       }
       let winner = checkForWinner(game.aliveList);

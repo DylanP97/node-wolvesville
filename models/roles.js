@@ -6,11 +6,23 @@ const rolesSchema = new mongoose.Schema({
     required: true,
   },
   team: {
-    type: [String],
+    type: String,
     required: true,
   },
   canVote: {
     type: Boolean,
+    required: true,
+  },
+  image: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+    required: true,
+  },
+  status: {
+    type: Number,
     required: true,
   },
   canPerform1: {
@@ -42,14 +54,6 @@ const rolesSchema = new mongoose.Schema({
   partner: {
     type: String,
     required: false,
-  },
-  image: {
-    type: String,
-    required: true,
-  },
-  description: {
-    type: String,
-    required: true,
   },
 });
 
