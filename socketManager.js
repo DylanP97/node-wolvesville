@@ -42,7 +42,6 @@ const socketManager = (io, rooms, connectedUsers) => {
         }
 
         setTimeout(() => updateGame(game), 1000);
-        console.log("hi there");
         return;
       }
     };
@@ -84,7 +83,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     }
 
     socket.on("sendNewConnectedUser", (user) => {
-      console.log((user.username || user.name) + " is connected " + socket.id);
+      // console.log((user.username || user.name) + " is connected " + socket.id);
       const existingUserIndex = connectedUsers.findIndex(
         (usr) => usr.username === user.username
       );
@@ -204,7 +203,6 @@ const socketManager = (io, rooms, connectedUsers) => {
     );
 
     socket.on("pauseGame", (roomId) => {
-      // console.log("pauseGame fn");
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
         game.isPaused = true;
@@ -291,6 +289,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     });
 
     socket.on("addWolfVote", (selectedPlayerId, nbr, roomId) => {
+      console.log("addWolfVote fn");
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
         game.playersList = wolfVoteAgainst(
@@ -395,7 +394,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     });
 
     socket.on("disconnect", () => {
-      console.log("User disconnected " + socket.id);
+      // console.log("User disconnected " + socket.id);
     });
 
     socket.on("logout", () => {

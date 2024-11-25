@@ -7,6 +7,7 @@ const {
   defaultAvatar,
 } = require("../lib/utils");
 const { connectedUsers, rooms } = require("../serverStore");
+const { shortName } = require("../lib/randomUsername");
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -68,16 +69,17 @@ exports.signup = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
+  console.log("Login request received");
   const { email, password } = req.body;
 
   try {
     const user = await UserModel.login(email, password);
     const accessToken = await generateAccessToken(user);
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-    });
+    // res.cookie("accessToken", accessToken, {
+    //   httpOnly: true,
+    //   secure: true,
+    //   sameSite: "None",
+    // });
     res.status(200).json({
       message: "User logged in",
       userId: user.id,
@@ -93,19 +95,16 @@ exports.login = async (req, res) => {
 
 exports.guestLogin = async (req, res) => {
   try {
-    const currentTime =
-      new Date().toISOString().replace(/[-:]/g, "").split(".")[0] +
-      new Date().getMilliseconds();
     const user = await GuestUserModel.create({
-      username: "Guest_" + currentTime,
+      username: shortName(),
       avatar: defaultAvatar,
     });
     const accessToken = await generateAccessToken(user);
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-    });
+    // res.cookie("accessToken", accessToken, {
+    //   httpOnly: true,
+    //   secure: true,
+    //   sameSite: "None",
+    // });
     res.status(200).json({
       message: "User logged in",
       userId: user.id,
@@ -119,56 +118,64 @@ exports.guestLogin = async (req, res) => {
   }
 };
 
-exports.logout = (req, res) => {
-  res.clearCookie("accessToken");
-  res.cookie("accessToken", "logout", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "None",
-    maxAge: -1,
-  });
+exports.logout = async (req, res) => {
+  const { username } = req.body; // Retrieve the username from the request body
+
+  // res.clearCookie("accessToken");
+  // res.cookie("accessToken", "logout", {
+  //   httpOnly: true,
+  //   secure: true,
+  //   sameSite: "None",
+  //   maxAge: -1,
+  // });
+  if (username) {
+    const user = await GuestUserModel.findOne({ username }); // Find user by username
+    if (user && user.isGuest) {
+      const deleteOk = await GuestUserModel.deleteOne({ _id: user.id });
+      console.log("Guest user deleted:", deleteOk);
+    }
+  }
   res.status(200).json({ message: "Logout success" });
 };
 
 exports.checkAuth = async (req, res) => {
+  console.log("checkAuth request received");
+
   try {
-    if (req.cookies) {
-      const accessToken = req.cookies.accessToken;
+    // Ensure the Authorization header is present
+    const accessToken = req.headers.authorization?.split(" ")[1]; // Extract token from "Bearer <token>"
 
-      if (!accessToken) {
-        return res.status(401).json({ message: "No access token provided" });
-      }
-      const user = await verifyAccessToken(accessToken);
-      if (!user) {
-        return res.status(401).json({ message: "Invalid access token" });
-      } else {
-        if (connectedUsers.some((usr) => usr.token === accessToken)) {
-          let userOnServer = connectedUsers.find(
-            (usr) => usr.token === accessToken
-          );
-
-          let gameOnServer = null;
-          if (userOnServer.isInRoom) {
-            gameOnServer = rooms.find(
-              (room) => room.id === userOnServer.isInRoom
-            );
-          }
-
-          res.status(200).json({
-            message: "Token successfully checked",
-            username: user.username,
-            avatar: user.avatar,
-            token: req.cookies.accessToken,
-            socketId: userOnServer.socketId,
-            isGuest: userOnServer.isGuest,
-            isInRoom: userOnServer.isInRoom,
-            isPlaying: userOnServer.isPlaying,
-            game: gameOnServer,
-          });
-        }
-      }
-    } else {
+    if (!accessToken) {
       return res.status(401).json({ message: "No access token provided" });
+    }
+    const user = await verifyAccessToken(accessToken);
+    if (!user) {
+      return res.status(401).json({ message: "Invalid access token" });
+    } else {
+      if (connectedUsers.some((usr) => usr.token === accessToken)) {
+        let userOnServer = connectedUsers.find(
+          (usr) => usr.token === accessToken
+        );
+
+        let gameOnServer = null;
+        if (userOnServer.isInRoom) {
+          gameOnServer = rooms.find(
+            (room) => room.id === userOnServer.isInRoom
+          );
+        }
+
+        res.status(200).json({
+          message: "Token successfully checked",
+          username: user.username,
+          avatar: user.avatar,
+          token: accessToken,
+          socketId: userOnServer.socketId,
+          isGuest: userOnServer.isGuest,
+          isInRoom: userOnServer.isInRoom,
+          isPlaying: userOnServer.isPlaying,
+          game: gameOnServer,
+        });
+      }
     }
   } catch (err) {
     console.error(err);
