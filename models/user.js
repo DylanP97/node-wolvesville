@@ -68,7 +68,7 @@ userSchema.statics.login = async function (email, password) {
       throw Error("incorrect password");
     }
   } else {
-    throw Error("incorrect email");
+    throw Error("no user found");
   }
 };
 

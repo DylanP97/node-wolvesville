@@ -86,10 +86,17 @@ exports.login = async (req, res) => {
       username: user.username,
       avatar: user.avatar,
       token: accessToken,
+      isGuest: false
     });
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ err });
+    console.error(err.message);
+    if (
+      err.message === "incorrect password" ||
+      err.message === "incorrect email"
+    ) {
+      return res.status(401).json({ error: err.message });
+    }
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -184,7 +191,9 @@ exports.checkAuth = async (req, res) => {
 };
 
 exports.editProfile = async (req, res) => {
+
   try {
+    
     const update = {
       $set: {
         avatar: {
@@ -211,15 +220,16 @@ exports.editProfile = async (req, res) => {
     const user = await UserModel.findOne(filter);
 
     if (!user) {
+      console.log("User not found");
       return res.status(404).json({ message: "User not found" });
     }
 
     const updatedUser = await UserModel.updateOne(filter, update);
 
     res.status(200).json({
-      message: "Modifications effectuées",
-      username: user.username,
-      avatar: updatedUser.avatar,
+      message: "Modifications sauvegardées",
+      username: req.body.username,
+      avatar: req.body.avatar,
     });
   } catch (err) {
     console.error(err);

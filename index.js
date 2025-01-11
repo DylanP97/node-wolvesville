@@ -20,7 +20,8 @@ mongoose
 const db = mongoose.connection;
 
 const corsOptions = {
-  origin: process.env.CLIENT_URL,
+  origin: '*',
+  // process.env.CLIENT_URL,
   credentials: true,
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   allowedHeaders: ["sessionId", "Content-Type", "Authorization", "*"],
