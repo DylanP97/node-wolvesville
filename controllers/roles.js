@@ -39,7 +39,6 @@ exports.findRoleByName = async (roleName) => {
 
 exports.getRolesDataForQuickGame = async () => {
   const rolesWantedForQuickGame = [
-    "Villager",
     "Jailer",
     "Gunner",
     "Seer",

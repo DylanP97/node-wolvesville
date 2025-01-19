@@ -86,7 +86,7 @@ exports.login = async (req, res) => {
       username: user.username,
       avatar: user.avatar,
       token: accessToken,
-      isGuest: false
+      isGuest: false,
     });
   } catch (err) {
     console.error(err.message);
@@ -126,7 +126,7 @@ exports.guestLogin = async (req, res) => {
 };
 
 exports.logout = async (req, res) => {
-  const { username } = req.body; // Retrieve the username from the request body
+  const { username, isGuest } = req.body; // Retrieve the username from the request body
 
   // res.clearCookie("accessToken");
   // res.cookie("accessToken", "logout", {
@@ -135,11 +135,12 @@ exports.logout = async (req, res) => {
   //   sameSite: "None",
   //   maxAge: -1,
   // });
+
   if (username) {
     const user = await GuestUserModel.findOne({ username }); // Find user by username
-    if (user && user.isGuest) {
-      const deleteOk = await GuestUserModel.deleteOne({ _id: user.id });
-      console.log("Guest user deleted:", deleteOk);
+    if (user && isGuest) {
+      console.log("Guest user deleted");
+      await GuestUserModel.deleteOne({ _id: user.id });
     }
   }
   res.status(200).json({ message: "Logout success" });
@@ -191,9 +192,7 @@ exports.checkAuth = async (req, res) => {
 };
 
 exports.editProfile = async (req, res) => {
-
   try {
-    
     const update = {
       $set: {
         avatar: {
