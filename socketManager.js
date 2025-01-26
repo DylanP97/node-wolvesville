@@ -178,7 +178,6 @@ const socketManager = (io, rooms, connectedUsers) => {
       // update array list of rooms both in server and client
       rooms.push(newQuickRoom);
       io.emit("updateRooms", rooms);
-
       // launch game
       startGame(newQuickRoom, newQuickRoom.id);
     });
