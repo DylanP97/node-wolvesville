@@ -101,17 +101,18 @@ exports.login = async (req, res) => {
 };
 
 exports.guestLogin = async (req, res) => {
+  console.log("Guest login request received");
   try {
     const user = await GuestUserModel.create({
       username: shortName(),
       avatar: defaultAvatar,
     });
     const accessToken = await generateAccessToken(user);
-    // res.cookie("accessToken", accessToken, {
-    //   httpOnly: true,
-    //   secure: true,
-    //   sameSite: "None",
-    // });
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+    });
     res.status(200).json({
       message: "User logged in",
       userId: user.id,
@@ -128,13 +129,13 @@ exports.guestLogin = async (req, res) => {
 exports.logout = async (req, res) => {
   const { username, isGuest } = req.body; // Retrieve the username from the request body
 
-  // res.clearCookie("accessToken");
-  // res.cookie("accessToken", "logout", {
-  //   httpOnly: true,
-  //   secure: true,
-  //   sameSite: "None",
-  //   maxAge: -1,
-  // });
+  res.clearCookie("accessToken");
+  res.cookie("accessToken", "logout", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+    maxAge: -1,
+  });
 
   if (username) {
     const user = await GuestUserModel.findOne({ username }); // Find user by username
@@ -147,16 +148,15 @@ exports.logout = async (req, res) => {
 };
 
 exports.checkAuth = async (req, res) => {
-  console.log("checkAuth request received");
-
   try {
     // Ensure the Authorization header is present
-    const accessToken = req.headers.authorization?.split(" ")[1]; // Extract token from "Bearer <token>"
+    const accessToken = req.cookies.accessToken // Extract token from "Bearer <token>"
 
     if (!accessToken) {
       return res.status(401).json({ message: "No access token provided" });
     }
     const user = await verifyAccessToken(accessToken);
+    console.log("User:", user);
     if (!user) {
       return res.status(401).json({ message: "Invalid access token" });
     } else {

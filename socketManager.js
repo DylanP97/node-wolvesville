@@ -11,8 +11,12 @@ const { voteAgainst, wolfVoteAgainst } = require("./lib/gameActions/vote");
 const { getRolesDataForQuickGame } = require("./controllers/roles");
 
 const socketManager = (io, rooms, connectedUsers) => {
+
   io.on("connection", (socket) => {
+    console.log("currently in connectedUsers")
+    console.log(connectedUsers.map((usr) => usr.username))
     const token = socket.handshake.query.token;
+    console.log(token)
 
     const updateGame = (game) => {
       if (game.hasEnded) {
@@ -69,8 +73,10 @@ const socketManager = (io, rooms, connectedUsers) => {
       if (game) updateGame(game);
     };
 
+    console.log(connectedUsers.some((usr) => usr.token === token))
     // verify if the user is already connected and having a socket change, if yes just updated his socketId
     if (connectedUsers.some((usr) => usr.token === token)) {
+      console.log("reconnected user");
       let user = connectedUsers.find((usr) => usr.token === token);
       connectedUsers = connectedUsers.filter((usr) => usr.token !== token);
       connectedUsers.push({ ...user, socketId: socket.id });
@@ -86,7 +92,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     }
 
     socket.on("sendNewConnectedUser", (user) => {
-      // console.log((user.username || user.name) + " is connected " + socket.id);
+      console.log((user.username || user.name) + " is connected " + socket.id);
       const existingUserIndex = connectedUsers.findIndex(
         (usr) => usr.username === user.username
       );
@@ -230,18 +236,40 @@ const socketManager = (io, rooms, connectedUsers) => {
       }
     });
 
-    socket.on("revealPlayer", (action, roomId) => {
+    socket.on("addVote", (action, roomId) => {
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
         editGame(
           game,
-          "reveal",
+          "addVote",
           action,
-          `
-          {serverContent.action.message.seer}
-          ${action.selectedPlayerName}!
-          `
-        );
+          `${action.playerName}
+          {serverContent.action.message.addVote} 
+          ${action.selectedPlayerName}!`
+        )
+        setRooms(rooms, game, io, roomId);
+      }
+    });
+
+    socket.on("addWolfVote", (action, roomId) => {
+      let game = rooms.find((room) => room.id === roomId);
+      if (game) {
+        editGame(
+          game,
+          "addWolfVote",
+          action,
+          `${action.playerName}
+          {serverContent.action.message.addWolfVote} 
+          ${action.selectedPlayerName}!`
+        )
+        setRooms(rooms, game, io, roomId);
+      }
+    });
+
+    socket.on("chooseJuniorWolfDeathRevenge", (actionObj, roomId) => {
+      let game = rooms.find((room) => room.id === roomId);
+      if (game) {
+        editGame(game, "chooseJuniorWolfDeathRevenge", actionObj, null);
         setRooms(rooms, game, io, roomId);
       }
     });
@@ -260,10 +288,18 @@ const socketManager = (io, rooms, connectedUsers) => {
       }
     });
 
-    socket.on("heal", (action, roomId) => {
+    socket.on("revealPlayer", (action, roomId) => {
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
-        editGame(game, "heal", action);
+        editGame(
+          game,
+          "reveal",
+          action,
+          `
+          {serverContent.action.message.seer}
+          ${action.selectedPlayerName}!
+          `
+        );
         setRooms(rooms, game, io, roomId);
       }
     });
@@ -282,26 +318,34 @@ const socketManager = (io, rooms, connectedUsers) => {
       }
     });
 
-    socket.on("addVote", (selectedPlayerId, nbr, roomId) => {
+    socket.on("heal", (action, roomId) => {
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
-        game.playersList = voteAgainst(selectedPlayerId, game.playersList, nbr);
+        editGame(game, "heal", action);
         setRooms(rooms, game, io, roomId);
       }
     });
 
-    socket.on("addWolfVote", (selectedPlayerId, nbr, roomId) => {
-      console.log("addWolfVote fn");
+    socket.on("protectPotion", (action, roomId) => {
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
-        game.playersList = wolfVoteAgainst(
-          selectedPlayerId,
-          game.playersList,
-          nbr
-        );
+        editGame(game, "protectPotion", action, `
+          ${action.selectedPlayerName}
+          {serverContent.action.message.protectPotion}
+          `);
         setRooms(rooms, game, io, roomId);
       }
-    });
+    })
+
+    socket.on("poisonPotion", (action, roomId) => {
+      let game = rooms.find((room) => room.id === roomId);
+      if (game) {
+        editGame(game, "poisonPotion", action, `
+          ${action.selectedPlayerName}{serverContent.action.message.poisonPotion}
+          `);
+        setRooms(rooms, game, io, roomId);
+      }
+    })
 
     socket.on("assertDuty", (mayorName, roomId) => {
       let game = rooms.find((room) => room.id === roomId);
@@ -315,14 +359,6 @@ const socketManager = (io, rooms, connectedUsers) => {
           ${mayorName}
           `
         );
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("chooseJuniorWolfDeathRevenge", (actionObj, roomId) => {
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(game, "chooseJuniorWolfDeathRevenge", actionObj, null);
         setRooms(rooms, game, io, roomId);
       }
     });
@@ -400,6 +436,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     });
 
     socket.on("logout", () => {
+      console.log("logout fn")
       connectedUsers = connectedUsers.filter(
         (usr) => usr.socketId !== socket.id
       );
