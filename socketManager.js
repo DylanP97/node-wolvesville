@@ -1,6 +1,6 @@
 const { checkForWinner } = require("./lib/gameActions");
 const { getCurrentTime } = require("./lib/utils");
-const { toVoteTime, toNightTime, toDayTime } = require("./lib/timeOfTheDay");
+const { toVoteTime, toNightTime, toDayTime, assignCpuRandomSecondToEachCPU } = require("./lib/timeOfTheDay");
 const {
   initializeGameObject,
   initializePlayersList,
@@ -28,6 +28,9 @@ const socketManager = (io, rooms, connectedUsers) => {
             if (game.timeOfTheDay == "nighttime") toDayTime(game);
             else if (game.timeOfTheDay == "daytime") toVoteTime(game);
             else if (game.timeOfTheDay == "votetime") toNightTime(game);
+
+            // This runs every time when game.timeCounter == 0
+            game.playersList = assignCpuRandomSecondToEachCPU(game.playersList)
           }
         } else {
           console.log("and the winner is...");
