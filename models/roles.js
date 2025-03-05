@@ -30,8 +30,50 @@ const rolesSchema = new mongoose.Schema({
       type: String,
       required: false,
     },
+    labelFR: {
+      type: String,
+      required: false,
+    },
     emoji: {
       type: String,
+      required: false,
+    },
+    nbrLeftToPerform: {
+      type: Number,
+      required: false,
+    },
+    type: {
+      type: String,
+      required: false,
+    },
+    needSelection: {
+      type: Boolean,
+      required: false,
+    },
+    actionTime: {
+      type: String,
+      required: false,
+    },
+    lastNight: {
+      type: Boolean,
+      required: false,
+    },
+  },
+  canPerform2: {
+    label: {
+      type: String,
+      required: false,
+    },
+    labelFR: {
+      type: String,
+      required: false,
+    },
+    emoji: {
+      type: String,
+      required: false,
+    },
+    nbrLeftToPerform: {
+      type: Number,
       required: false,
     },
     type: {

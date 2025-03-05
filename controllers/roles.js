@@ -30,7 +30,8 @@ exports.getRoleByName = async (req, res) => {
 exports.findRoleByName = async (roleName) => {
   try {
     const role = await RolesModel.findOne({ name: roleName });
-    return role;
+    const plainRole = JSON.parse(JSON.stringify(role)); // Fully detach from Mongoose
+    return plainRole;
   } catch (error) {
     console.error(error);
     throw new Error("Database Error");
@@ -55,7 +56,8 @@ exports.getRolesDataForQuickGame = async () => {
   try {
     const rolePromises = rolesWantedForQuickGame.map(async (roleName) => {
       const role = await this.findRoleByName(roleName); // Use the helper function here
-      return role;
+      const plainRole = JSON.parse(JSON.stringify(role)); // Fully detach from Mongoose
+      return plainRole;
     });
 
     quickGameRolesData = await Promise.all(rolePromises);
@@ -63,7 +65,5 @@ exports.getRolesDataForQuickGame = async () => {
     console.log(error);
   }
 
-  return quickGameRolesData.filter(role => role); // Remove any undefined roles
+  return quickGameRolesData.filter((role) => role); // Remove any undefined roles
 };
-
-
