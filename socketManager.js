@@ -260,6 +260,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     });
 
     socket.on("addWolfVote", (action, roomId) => {
+      console.log("addWolfVote fn");
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
         editGame(
@@ -323,6 +324,7 @@ const socketManager = (io, rooms, connectedUsers) => {
           `{serverContent.action.message.shootBullet} ${action.selectedPlayerName}.`
         );
         setRooms(rooms, game, io, roomId);
+        io.to(roomId).emit("triggerSoundForAll", "gunshot");
       }
     });
 
