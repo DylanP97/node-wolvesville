@@ -9,6 +9,7 @@ const cookies = require("cookie-parser");
 const userRoutes = require("./routes/user");
 const rolesRoutes = require("./routes/roles");
 const teamsRoutes = require("./routes/teams");
+const { GuestUserModel } = require("./models/user");
 
 mongoose.set("strictQuery", false);
 
@@ -18,6 +19,17 @@ mongoose
   .catch(() => console.log("Connexion à MongoDB échouée !"));
 
 const db = mongoose.connection;
+
+db.once("open", async () => {
+  try {
+    const result = await GuestUserModel.deleteMany({
+      username: { $exists: true },
+    });
+    console.log(`✅ Deleted ${result.deletedCount} guest users on server restart.`);
+  } catch (err) {
+    console.error("❌ Error deleting guest users:", err);
+  }
+});
 
 const corsOptions = {
   origin: process.env.CLIENT_URL,

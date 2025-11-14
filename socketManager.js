@@ -168,9 +168,9 @@ const socketManager = (io, rooms, connectedUsers) => {
         id: Date.now(),
         name: `Quick Game`,
         createdBy: username,
-        nbrOfPlayers: 9,
+        nbrOfPlayers: 10,
         nbrUserPlayers: 1,
-        nbrCPUPlayers: 8,
+        nbrCPUPlayers: 9,
         selectedRoles: rolesData,
         usersInTheRoom: [{ username, socketId, avatar }],
         isLaunched: false,
@@ -267,8 +267,8 @@ const socketManager = (io, rooms, connectedUsers) => {
           game,
           "addWolfVote",
           action,
-          `${action.playerName}
-          {serverContent.action.message.addWolfVote} 
+          `DEV -- ${action.playerName}
+          {serverContent.action.message.addWolfVote} --
           ${action.selectedPlayerName}!`
         );
         setRooms(rooms, game, io, roomId);
@@ -279,6 +279,25 @@ const socketManager = (io, rooms, connectedUsers) => {
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
         editGame(game, "chooseJuniorWolfDeathRevenge", actionObj, null);
+        setRooms(rooms, game, io, roomId);
+      }
+    });
+
+    socket.on("uncoverRole", (action, roomId) => {
+      let game = rooms.find((room) => room.id === roomId);
+      if (game) {
+        editGame(
+          game,
+          "uncoverRole",
+          action,
+          null // Don't add message to general chat
+        );
+        // Add message to wolves chat instead
+        game.wolvesMessagesHistory.unshift({
+          time: getCurrentTime(),
+          author: "",
+          msg: `{serverContent.action.message.wolfSeer} ${action.selectedPlayerName}!`,
+        });
         setRooms(rooms, game, io, roomId);
       }
     });
@@ -343,9 +362,9 @@ const socketManager = (io, rooms, connectedUsers) => {
           game,
           "protectPotion",
           action,
-          `
+          `DEV --
           ${action.selectedPlayerName}
-          {serverContent.action.message.protectPotion}
+          {serverContent.action.message.protectPotion} --
           `
         );
         setRooms(rooms, game, io, roomId);
@@ -359,7 +378,7 @@ const socketManager = (io, rooms, connectedUsers) => {
           game,
           "poisonPotion",
           action,
-          `
+          `DEV --
           ${action.selectedPlayerName}{serverContent.action.message.poisonPotion}
           `
         );

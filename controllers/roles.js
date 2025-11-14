@@ -40,15 +40,16 @@ exports.findRoleByName = async (roleName) => {
 
 exports.getRolesDataForQuickGame = async () => {
   const rolesWantedForQuickGame = [
-    "Witch",
-    "Gunner",
-    "Seer",
-    "Mayor",
-    "Serial Killer",
-    "Fool",
-    "Alpha Werewolf",
-    "Classic Werewolf",
-    "Classic Werewolf",
+    "Witch",//
+    "Gunner",//
+    "Seer",//
+    "Mayor",//
+    "Serial Killer",//
+    "Fool",//
+    "Alpha Werewolf",//
+    "Wolf Seer",
+    "Classic Werewolf",//
+    "Classic Werewolf",//
   ];
 
   let quickGameRolesData = [];

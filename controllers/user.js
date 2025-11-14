@@ -140,7 +140,6 @@ exports.logout = async (req, res) => {
   if (username) {
     const user = await GuestUserModel.findOne({ username }); // Find user by username
     if (user && isGuest) {
-      console.log("Guest user deleted");
       await GuestUserModel.deleteOne({ _id: user.id });
     }
   }
@@ -156,7 +155,7 @@ exports.checkAuth = async (req, res) => {
       return res.status(401).json({ message: "No access token provided" });
     }
     const user = await verifyAccessToken(accessToken);
-    console.log("User:", user);
+    // console.log("User:", user);
     if (!user) {
       return res.status(401).json({ message: "Invalid access token" });
     } else {
