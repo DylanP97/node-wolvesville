@@ -168,9 +168,9 @@ const socketManager = (io, rooms, connectedUsers) => {
         id: Date.now(),
         name: `Quick Game`,
         createdBy: username,
-        nbrOfPlayers: 10,
+        nbrOfPlayers: 12,
         nbrUserPlayers: 1,
-        nbrCPUPlayers: 9,
+        nbrCPUPlayers: 11,
         selectedRoles: rolesData,
         usersInTheRoom: [{ username, socketId, avatar }],
         isLaunched: false,
@@ -381,6 +381,20 @@ const socketManager = (io, rooms, connectedUsers) => {
           `DEV --
           ${action.selectedPlayerName}{serverContent.action.message.poisonPotion}
           `
+        );
+        setRooms(rooms, game, io, roomId);
+      }
+    });
+
+    socket.on("lootGrave", (action, roomId) => {
+      console.log("lootGrave fn");
+      let game = rooms.find((room) => room.id === roomId);
+      if (game) {
+        editGame(
+          game,
+          "loot",
+          action,
+          `{serverContent.action.message.graveRobber} ${action.selectedPlayerName}!`
         );
         setRooms(rooms, game, io, roomId);
       }
