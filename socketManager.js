@@ -53,8 +53,8 @@ const socketManager = (io, rooms, connectedUsers) => {
     });
 
     const updateGame = (game) => {
-      if (game.hasEnded) {
-        console.log("the game has ended");
+      if (game.hasEnded || game.showingRoleReveal) {
+        console.log("the game has ended or showing role reveal");
         return;
       } else if (game.isPaused) {
         setTimeout(() => updateGame(game), 1000);
@@ -99,16 +99,29 @@ const socketManager = (io, rooms, connectedUsers) => {
       roomToJoin.playersList = assignCpuRandomSecondToEachCPU(
         roomToJoin.playersList
       );
+
+      // Add a flag to indicate role reveal phase
+      roomToJoin.showingRoleReveal = true;
+
       const roomIndex = rooms.findIndex((r) => r.id === roomId);
       if (roomIndex !== -1) {
         rooms[roomIndex] = roomToJoin;
         io.emit("updateRooms", rooms);
       }
+
+      // Emit launchRoom with the flag set
       io.to(roomId).emit("launchRoom", roomToJoin);
 
-      let game;
-      game = rooms.find((r) => r.id === roomId);
-      if (game) updateGame(game);
+      // After 11 seconds, start the actual game countdown
+      setTimeout(() => {
+        let game = rooms.find((r) => r.id === roomId);
+        if (game) {
+          game.showingRoleReveal = false;
+          rooms[roomIndex] = game;
+          io.to(roomId).emit("updateGame", game);
+          updateGame(game);
+        }
+      }, 10000);
     };
 
     socket.on("createRoom", (newRoom) => {
