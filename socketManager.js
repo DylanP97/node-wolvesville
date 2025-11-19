@@ -3,6 +3,8 @@ const { getCurrentTime } = require("./lib/utils");
 const {
   toVoteTime,
   toNightTime,
+  toVoteTimeAftermath,
+  toNightTimeAftermath,
   toDayTime,
   assignCpuRandomSecondToEachCPU,
 } = require("./lib/timeOfTheDay");
@@ -63,9 +65,16 @@ const socketManager = (io, rooms, connectedUsers) => {
           game.timeCounter -= 1000;
 
           if (game.timeCounter == 0) {
-            if (game.timeOfTheDay == "nighttime") toDayTime(game);
+            // if (game.timeOfTheDay == "nighttime") toDayTime(game);
+            // else if (game.timeOfTheDay == "daytime") toVoteTime(game);
+            // else if (game.timeOfTheDay == "votetime") toNightTime(game);
+
+            if (game.timeOfTheDay == "nighttime") toNightTimeAftermath(game);
+            else if (game.timeOfTheDay == "nighttimeAftermath") toDayTime(game);
             else if (game.timeOfTheDay == "daytime") toVoteTime(game);
-            else if (game.timeOfTheDay == "votetime") toNightTime(game);
+            else if (game.timeOfTheDay == "votetime") toVoteTimeAftermath(game);
+            else if (game.timeOfTheDay == "votetimeAftermath") toNightTime(game);
+
 
             // This runs every time when game.timeCounter == 0
             game.playersList = assignCpuRandomSecondToEachCPU(game.playersList);
@@ -88,12 +97,19 @@ const socketManager = (io, rooms, connectedUsers) => {
     };
 
     const startGame = (roomToJoin, roomId) => {
+      // Pass user preferences (including preferred roles) to initialization
+      const userPreferences = roomToJoin.usersInTheRoom.map(user => ({
+        username: user.username,
+        preferredRole: user.preferredRole || null
+      }));
+
       const playersList = initializePlayersList(
         roomToJoin.nbrOfPlayers,
         roomToJoin.selectedRoles,
         roomToJoin.usersInTheRoom,
         roomToJoin.nbrCPUPlayers,
-        roomToJoin.isQuickGame
+        roomToJoin.isQuickGame,
+        userPreferences // Pass preferences to initialization
       );
       roomToJoin = initializeGameObject(roomToJoin, playersList);
       roomToJoin.playersList = assignCpuRandomSecondToEachCPU(
@@ -185,7 +201,7 @@ const socketManager = (io, rooms, connectedUsers) => {
         nbrUserPlayers: 1,
         nbrCPUPlayers: 11,
         selectedRoles: rolesData,
-        usersInTheRoom: [{ username, socketId, avatar }],
+        usersInTheRoom: [{ username, socketId, avatar, preferredRole: null }],
         isLaunched: false,
         isQuickGame: true,
       };
@@ -391,8 +407,7 @@ const socketManager = (io, rooms, connectedUsers) => {
           game,
           "poisonPotion",
           action,
-          `DEV --
-          ${action.selectedPlayerName}{serverContent.action.message.poisonPotion}
+          `{serverContent.action.message.poisonPotion}${action.selectedPlayerName}
           `
         );
         setRooms(rooms, game, io, roomId);
@@ -431,6 +446,10 @@ const socketManager = (io, rooms, connectedUsers) => {
 
     socket.on("checkForWinner", (roomId) => {
       let game = rooms.find((room) => room.id === roomId);
+      if (!game) {
+        console.log("game is undefined in checkForWinner");
+        return;
+      }
       if (game.aliveList === null) {
         game.aliveList = game.playersList.filter((p) => p.isAlive);
       }
