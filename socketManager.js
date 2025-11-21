@@ -41,7 +41,8 @@ const socketManager = (io, rooms, connectedUsers) => {
     }
 
     socket.on("sendNewConnectedUser", (user) => {
-      console.log((user.username || user.name) + " is connected " + socket.id);
+      // console.log((user.username || user.name) + " is connected " + socket.id);
+      
       const existingUserIndex = connectedUsers.findIndex(
         (usr) => usr.username === user.username
       );

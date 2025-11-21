@@ -87,6 +87,7 @@ exports.login = async (req, res) => {
       avatar: user.avatar,
       token: accessToken,
       isGuest: false,
+      isDev: user.isDev || false,
     });
   } catch (err) {
     console.error(err.message);
@@ -101,7 +102,7 @@ exports.login = async (req, res) => {
 };
 
 exports.guestLogin = async (req, res) => {
-  console.log("Guest login request received");
+  // console.log("Guest login request received");
   try {
     const user = await GuestUserModel.create({
       username: shortName(),
@@ -119,6 +120,7 @@ exports.guestLogin = async (req, res) => {
       username: user.username,
       avatar: defaultAvatar,
       token: accessToken,
+      isDev: false,
     });
   } catch (err) {
     console.log(err);
@@ -181,6 +183,7 @@ exports.checkAuth = async (req, res) => {
           isInRoom: userOnServer.isInRoom,
           isPlaying: userOnServer.isPlaying,
           game: gameOnServer,
+          isDev: user.isDev || false,
         });
       }
     }

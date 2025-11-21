@@ -24,6 +24,7 @@ const userSchema = new mongoose.Schema({
   avatar: {
     type: Object,
   },
+  isDev: { type: Boolean, default: false },
   resetPasswordToken: {
     type: String,
   },
