@@ -18,8 +18,8 @@ const { getRolesDataForQuickGame } = require("./controllers/roles");
 
 const socketManager = (io, rooms, connectedUsers) => {
   io.on("connection", (socket) => {
-    // console.log("currently in connectedUsers")
-    // console.log(connectedUsers.map((usr) => usr.username))
+    console.log("currently in connectedUsers dd")
+    console.log(connectedUsers.map((usr) => usr.username))
     const token = socket.handshake.query.token;
 
     console.log("some user trying to reconnect with token:", connectedUsers.some((usr) => usr.token === token));
@@ -232,6 +232,8 @@ const socketManager = (io, rooms, connectedUsers) => {
       "updateUserGameState",
       (username, newIsInRoom, newIsPlaying, newGame) => {
 
+        console.log("updateUserGameState fn")
+
         let userIndex = connectedUsers.findIndex(
           (usr) => usr.username === username
         );
@@ -272,7 +274,6 @@ const socketManager = (io, rooms, connectedUsers) => {
           }
         }
 
-        // Broadcast the updated users to all clients
         io.emit("updateUsers", connectedUsers);
       }
     );
@@ -547,17 +548,57 @@ const socketManager = (io, rooms, connectedUsers) => {
     });
 
     socket.on("disconnect", () => {
-      // console.log("User disconnected " + socket.id);
+      console.log(" socket.on(disconnect " + socket.id);
+
+      console.log("connectedUsers after disconnect:");
+      console.log(connectedUsers.map((usr) => usr.username))
+      console.log("rooms after disconnect:")
+      console.log(rooms.map((room) => room.id + " " + room.name));
     });
 
     socket.on("logout", () => {
       console.log("logout fn");
+
+      const user = connectedUsers.find(
+        (usr) => usr.socketId === socket.id
+      );
+
       connectedUsers = connectedUsers.filter(
         (usr) => usr.socketId !== socket.id
       );
+
+      // If the user left a room, check if the room needs to be deleted      
+      let room = rooms.find((r) => r.id === user.isInRoom);
+
+      if (room) {
+        // Check if there are any real users left
+        const hasOtherRealUsers = room.usersInTheRoom.some(
+          (u) => u.username !== user.username
+        );
+        console.log("does the room have real users?", hasOtherRealUsers);
+
+        if (!hasOtherRealUsers) {
+          // Delete the room entirely if no real users are left
+          let updatedRooms = rooms.filter((r) => r.id !== room.id);
+          rooms = updatedRooms;
+          io.emit("updateRooms", rooms);
+
+          // Reset any users still marked in that room (it shouldn't happen normally)
+          connectedUsers = connectedUsers.map((u) =>
+            u.isInRoom === user.isInRoom
+              ? { ...u, isInRoom: null, isPlaying: false }
+              : u
+          );
+        }
+      }
+
       io.emit("updateUsers", connectedUsers);
-      // console.log("connectedUsers on logout:");
-      // console.log(connectedUsers);
+
+      console.log("connectedUsers after logout:");
+      console.log(connectedUsers.map((usr) => usr.username))
+      console.log("rooms after logout:")
+      console.log(rooms.map((room) => room.id + " " + room.name));
+
     });
   });
 };
