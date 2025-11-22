@@ -87,7 +87,7 @@ exports.login = async (req, res) => {
       avatar: user.avatar,
       token: accessToken,
       isGuest: false,
-      isDev: user.isDev || false,
+      isDev: user.isDev,
     });
   } catch (err) {
     console.error(err.message);
@@ -183,7 +183,7 @@ exports.checkAuth = async (req, res) => {
           isInRoom: userOnServer.isInRoom,
           isPlaying: userOnServer.isPlaying,
           game: gameOnServer,
-          isDev: user.isDev || false,
+          isDev: user.isDev,
         });
       }
     }
