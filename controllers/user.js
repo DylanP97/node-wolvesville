@@ -159,6 +159,15 @@ exports.checkAuth = async (req, res) => {
     const user = await verifyAccessToken(accessToken);
     // console.log("User:", user);
     if (!user) {
+      // clear client cookie if any...
+      res.clearCookie("accessToken");
+      res.cookie("accessToken", "", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "None",
+        maxAge: -1,
+      });
+      // maybe update server store connectedUsers and rooms if user is still in the state
       return res.status(401).json({ message: "Invalid access token" });
     } else {
       if (connectedUsers.some((usr) => usr.token === accessToken)) {

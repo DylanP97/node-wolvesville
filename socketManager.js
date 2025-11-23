@@ -196,7 +196,7 @@ const socketManager = (io, rooms, connectedUsers) => {
 
       let newQuickRoom = {
         id: Date.now(),
-        name: `Quick Game`,
+        name: `Quick Game ${Date.now()}`,
         createdBy: username,
         nbrOfPlayers: 12,
         nbrUserPlayers: 1,
@@ -231,7 +231,6 @@ const socketManager = (io, rooms, connectedUsers) => {
     socket.on(
       "updateUserGameState",
       (username, newIsInRoom, newIsPlaying, newGame) => {
-
         console.log("updateUserGameState fn")
 
         let userIndex = connectedUsers.findIndex(
@@ -253,28 +252,33 @@ const socketManager = (io, rooms, connectedUsers) => {
         let room = rooms.find((r) => r.id === prevUserState.isInRoom);
 
         if (room) {
-          // Check if there are any real users left
-          const hasOtherRealUsers = room.usersInTheRoom.some(
-            (u) => u.username !== username
-          );
-          console.log("does the room have real users?", hasOtherRealUsers);
-
-          if (!hasOtherRealUsers) {
-            // Delete the room entirely if no real users are left
-            let updatedRooms = rooms.filter((r) => r.id !== room.id);
-            rooms = updatedRooms;
-            io.emit("updateRooms", rooms);
-
-            // Reset any users still marked in that room (it shouldn't happen normally)
-            connectedUsers = connectedUsers.map((u) =>
-              u.isInRoom === newIsInRoom
-                ? { ...u, isInRoom: null, isPlaying: false }
-                : u
+          if (room.isLaunched) {
+            // Check if there are any real users left
+            const hasOtherRealUsers = room.usersInTheRoom.some(
+              (u) => u.username !== username
             );
-          }
-        }
+            console.log("does the room have real users?", hasOtherRealUsers);
 
-        io.emit("updateUsers", connectedUsers);
+            if (!hasOtherRealUsers) {
+              // Delete the room entirely if no real users are left
+
+              console.log("room deleted")
+
+              let updatedRooms = rooms.filter((r) => r.id !== room.id);
+              rooms = updatedRooms;
+              io.emit("updateRooms", rooms);
+
+              // Reset any users still marked in that room (it shouldn't happen normally)
+              connectedUsers = connectedUsers.map((u) =>
+                u.isInRoom === newIsInRoom
+                  ? { ...u, isInRoom: null, isPlaying: false }
+                  : u
+              );
+            }
+          }
+
+          io.emit("updateUsers", connectedUsers);
+        }
       }
     );
 
