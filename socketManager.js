@@ -198,9 +198,9 @@ const socketManager = (io, rooms, connectedUsers) => {
         id: Date.now(),
         name: `Quick Game ${Date.now()}`,
         createdBy: username,
-        nbrOfPlayers: 12,
+        nbrOfPlayers: 14,
         nbrUserPlayers: 1,
-        nbrCPUPlayers: 11,
+        nbrCPUPlayers: 13,
         selectedRoles: rolesData,
         usersInTheRoom: [{ username, socketId, avatar, preferredRole: null }],
         isLaunched: false,
@@ -317,7 +317,7 @@ const socketManager = (io, rooms, connectedUsers) => {
           game,
           "addVote",
           action,
-          `${action.playerName}
+          `DEV -- ${action.playerName}
           {serverContent.action.message.addVote} 
           ${action.selectedPlayerName}!`
         );
@@ -334,8 +334,8 @@ const socketManager = (io, rooms, connectedUsers) => {
           "addWolfVote",
           action,
           `DEV -- ${action.playerName}
-          {serverContent.action.message.addWolfVote} --
-          ${action.selectedPlayerName}!`
+          {serverContent.action.message.addWolfVote}
+          ${action.selectedPlayerName}! --`
         );
         setRooms(rooms, game, io, roomId);
       }
@@ -416,7 +416,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     socket.on("heal", (action, roomId) => {
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
-        editGame(game, "heal", action);
+        editGame(game, "heal", action, `DEV -- {serverContent.action.message.heal} ${action.selectedPlayerName}! --`);
         setRooms(rooms, game, io, roomId);
       }
     });
@@ -459,7 +459,7 @@ const socketManager = (io, rooms, connectedUsers) => {
           game,
           "loot",
           action,
-          `{serverContent.action.message.graveRobber} ${action.selectedPlayerName}!`
+          `DEV -- {serverContent.action.message.graveRobber} ${action.selectedPlayerName}! --`
         );
         setRooms(rooms, game, io, roomId);
       }

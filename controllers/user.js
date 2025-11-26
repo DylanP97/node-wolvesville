@@ -75,11 +75,7 @@ exports.login = async (req, res) => {
   try {
     const user = await UserModel.login(email, password);
     const accessToken = await generateAccessToken(user);
-    // res.cookie("accessToken", accessToken, {
-    //   httpOnly: true,
-    //   secure: true,
-    //   sameSite: "None",
-    // });
+
     res.status(200).json({
       message: "User logged in",
       userId: user.id,
@@ -90,14 +86,18 @@ exports.login = async (req, res) => {
       isDev: user.isDev,
     });
   } catch (err) {
-    console.error(err.message);
-    if (
-      err.message === "incorrect password" ||
-      err.message === "incorrect email"
-    ) {
-      return res.status(401).json({ error: err.message });
+    console.error("Login error:", err.message);
+
+    // Return specific error messages based on the error
+    if (err.message === "incorrect password") {
+      return res.status(401).json({ error: "Incorrect password. Please try again." });
     }
-    res.status(500).json({ error: "Internal server error" });
+    if (err.message === "no user found") {
+      return res.status(401).json({ error: "No account found with this email." });
+    }
+
+    // Generic error for unexpected issues
+    res.status(500).json({ error: "An error occurred during login. Please try again." });
   }
 };
 
