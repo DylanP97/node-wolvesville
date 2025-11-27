@@ -54,6 +54,7 @@ exports.getRolesDataForQuickGame = async () => {
     "Grave Robber",//
     "Doctor",//
     "Cursed",//
+    "Pyromaniac"
   ];
 
   let quickGameRolesData = [];

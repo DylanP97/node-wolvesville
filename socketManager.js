@@ -17,6 +17,56 @@ const {
 const { getRolesDataForQuickGame } = require("./controllers/roles");
 
 const socketManager = (io, rooms, connectedUsers) => {
+  // Automatic room cleanup function
+  const cleanupOldRooms = () => {
+    const now = Date.now();
+    const MAX_ROOM_AGE = 30 * 60 * 1000; // 30 minutes in milliseconds
+
+    const roomsToDelete = rooms.filter(room => {
+      // Only delete launched rooms
+      if (!room.isLaunched) return false;
+
+      // Check if room is older than MAX_ROOM_AGE
+      const roomAge = now - room.id;
+      return roomAge > MAX_ROOM_AGE;
+    });
+
+    if (roomsToDelete.length > 0) {
+      console.log(`Cleaning up ${roomsToDelete.length} old room(s)`);
+
+      roomsToDelete.forEach(room => {
+        console.log(`Deleting old room: ${room.name} (ID: ${room.id})`);
+
+        // Update users who were in this room
+        connectedUsers.forEach((user, index) => {
+          if (user.isInRoom === room.id) {
+            connectedUsers[index] = {
+              ...user,
+              isInRoom: null,
+              isPlaying: false
+            };
+          }
+        });
+      });
+
+      // Remove old rooms
+      rooms = rooms.filter(room => {
+        const roomAge = now - room.id;
+        return !room.isLaunched || roomAge <= MAX_ROOM_AGE;
+      });
+
+      io.emit("updateRooms", rooms);
+      io.emit("updateUsers", connectedUsers);
+    }
+  };
+
+  // Run cleanup every 10 minutes
+  setInterval(cleanupOldRooms, 10 * 60 * 1000);
+  // Also cleanup on initial load
+  cleanupOldRooms();
+
+
+
   io.on("connection", (socket) => {
     console.log("currently in connectedUsers dd")
     console.log(connectedUsers.map((usr) => usr.username))
@@ -66,16 +116,11 @@ const socketManager = (io, rooms, connectedUsers) => {
           game.timeCounter -= 1000;
 
           if (game.timeCounter == 0) {
-            // if (game.timeOfTheDay == "nighttime") toDayTime(game);
-            // else if (game.timeOfTheDay == "daytime") toVoteTime(game);
-            // else if (game.timeOfTheDay == "votetime") toNightTime(game);
-
             if (game.timeOfTheDay == "nighttime") toNightTimeAftermath(game);
             else if (game.timeOfTheDay == "nighttimeAftermath") toDayTime(game);
             else if (game.timeOfTheDay == "daytime") toVoteTime(game);
             else if (game.timeOfTheDay == "votetime") toVoteTimeAftermath(game);
             else if (game.timeOfTheDay == "votetimeAftermath") toNightTime(game);
-
 
             // This runs every time when game.timeCounter == 0
             game.playersList = assignCpuRandomSecondToEachCPU(game.playersList);
@@ -198,9 +243,9 @@ const socketManager = (io, rooms, connectedUsers) => {
         id: Date.now(),
         name: `Quick Game ${Date.now()}`,
         createdBy: username,
-        nbrOfPlayers: 14,
+        nbrOfPlayers: 15,
         nbrUserPlayers: 1,
-        nbrCPUPlayers: 13,
+        nbrCPUPlayers: 14,
         selectedRoles: rolesData,
         usersInTheRoom: [{ username, socketId, avatar, preferredRole: null }],
         isLaunched: false,
@@ -310,7 +355,6 @@ const socketManager = (io, rooms, connectedUsers) => {
     });
 
     socket.on("addVote", (action, roomId) => {
-      console.log(action);
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
         editGame(
@@ -410,6 +454,34 @@ const socketManager = (io, rooms, connectedUsers) => {
         );
         setRooms(rooms, game, io, roomId);
         io.to(roomId).emit("triggerSoundForAll", "gunshot");
+      }
+    });
+
+    socket.on("pourGasoline", (action, roomId) => {
+      console.log("pourGasoline fn");
+      let game = rooms.find((room) => room.id === roomId);
+      if (game) {
+        editGame(
+          game,
+          "pour",
+          action,
+          ` DEV -- {serverContent.action.message.pourGasoline} ${action.selectedPlayerName} --`
+        );
+        setRooms(rooms, game, io, roomId);
+      }
+    });
+
+    socket.on("burnThemDown", (action, roomId) => {
+      console.log("burnThemDown fn");
+      let game = rooms.find((room) => room.id === roomId);
+      if (game) {
+        editGame(
+          game,
+          "burn",
+          action,
+          `{serverContent.action.message.burnThemDown}`
+        );
+        setRooms(rooms, game, io, roomId);
       }
     });
 
