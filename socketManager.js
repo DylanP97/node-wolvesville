@@ -17,6 +17,7 @@ const {
 const { getRolesDataForQuickGame } = require("./controllers/roles");
 
 const socketManager = (io, rooms, connectedUsers) => {
+
   // Automatic room cleanup function
   const cleanupOldRooms = () => {
     const now = Date.now();
@@ -479,7 +480,7 @@ const socketManager = (io, rooms, connectedUsers) => {
           game,
           "burn",
           action,
-          `{serverContent.action.message.burnThemDown}`
+          ``
         );
         setRooms(rooms, game, io, roomId);
       }

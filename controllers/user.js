@@ -227,14 +227,15 @@ exports.editProfile = async (req, res) => {
     };
 
     const filter = { username: req.body.username };
-    const user = await UserModel.findOne(filter);
+    
+    const updatedUser = await UserModel.findOneAndUpdate(filter, update, {
+      new: true, // Return updated document
+    });
 
-    if (!user) {
+    if (!updatedUser) {
       console.log("User not found");
       return res.status(404).json({ message: "User not found" });
     }
-
-    const updatedUser = await UserModel.updateOne(filter, update);
 
     res.status(200).json({
       message: "Modifications sauvegardées",
