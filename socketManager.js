@@ -22,12 +22,25 @@ const socketManager = (io, rooms, connectedUsers) => {
   const cleanupOldRooms = () => {
     const now = Date.now();
     const MAX_ROOM_AGE = 30 * 60 * 1000; // 30 minutes in milliseconds
+    const MAX_ENDED_ROOM_AGE = 5 * 60 * 1000; // 5 minutes for ended games
 
     const roomsToDelete = rooms.filter(room => {
       // Only delete launched rooms
       if (!room.isLaunched) return false;
 
-      // Check if room is older than MAX_ROOM_AGE
+      // Check if room has ended and been ended for more than 5 minutes
+      if (room.hasEnded) {
+        const roomAge = now - room.id;
+        return roomAge > MAX_ENDED_ROOM_AGE;
+      }
+
+      // Check if room has no real users (only CPU players)
+      const hasRealUsers = room.usersInTheRoom && room.usersInTheRoom.length > 0;
+      if (!hasRealUsers) {
+        return true; // Delete immediately if no real users
+      }
+
+      // Check if room is older than MAX_ROOM_AGE (30 minutes)
       const roomAge = now - room.id;
       return roomAge > MAX_ROOM_AGE;
     });
@@ -36,7 +49,13 @@ const socketManager = (io, rooms, connectedUsers) => {
       console.log(`Cleaning up ${roomsToDelete.length} old room(s)`);
 
       roomsToDelete.forEach(room => {
-        console.log(`Deleting old room: ${room.name} (ID: ${room.id})`);
+        const reason = room.hasEnded
+          ? 'ended game timeout'
+          : room.usersInTheRoom?.length === 0
+            ? 'no real users'
+            : 'max age reached';
+
+        console.log(`Deleting room: ${room.name} (ID: ${room.id}) - Reason: ${reason}`);
 
         // Update users who were in this room
         connectedUsers.forEach((user, index) => {
@@ -51,18 +70,15 @@ const socketManager = (io, rooms, connectedUsers) => {
       });
 
       // Remove old rooms
-      rooms = rooms.filter(room => {
-        const roomAge = now - room.id;
-        return !room.isLaunched || roomAge <= MAX_ROOM_AGE;
-      });
+      rooms = rooms.filter(room => !roomsToDelete.includes(room));
 
       io.emit("updateRooms", rooms);
       io.emit("updateUsers", connectedUsers);
     }
   };
 
-  // Run cleanup every 10 minutes
-  setInterval(cleanupOldRooms, 10 * 60 * 1000);
+  // Run cleanup every 3 minutes
+  setInterval(cleanupOldRooms, 3 * 60 * 1000);
   // Also cleanup on initial load
   cleanupOldRooms();
 
@@ -197,7 +213,7 @@ const socketManager = (io, rooms, connectedUsers) => {
         connectedUsers[userIndex] = {
           ...connectedUsers[userIndex],
           isInRoom: newRoom.id,
-          isPlaying: true,
+          // isPlaying: true,
         };
       }
       io.emit("updateUsers", connectedUsers);
@@ -277,7 +293,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     socket.on(
       "updateUserGameState",
       (username, newIsInRoom, newIsPlaying, newGame) => {
-        console.log("updateUserGameState fn")
+        console.log("updateUserGameState fn");
 
         let userIndex = connectedUsers.findIndex(
           (usr) => usr.username === username
@@ -299,27 +315,36 @@ const socketManager = (io, rooms, connectedUsers) => {
 
         if (room) {
           if (room.isLaunched) {
-            // Check if there are any real users left
-            const hasOtherRealUsers = room.usersInTheRoom.some(
+            // IMPORTANT: Remove the user from usersInTheRoom
+            room.usersInTheRoom = room.usersInTheRoom.filter(
               (u) => u.username !== username
             );
+
+            // Check if there are any real users left
+            const hasOtherRealUsers = room.usersInTheRoom.length > 0;
             console.log("does the room have real users?", hasOtherRealUsers);
 
             if (!hasOtherRealUsers) {
               // Delete the room entirely if no real users are left
-
-              console.log("room deleted")
+              console.log("room deleted - no more real users");
 
               let updatedRooms = rooms.filter((r) => r.id !== room.id);
               rooms = updatedRooms;
               io.emit("updateRooms", rooms);
 
-              // Reset any users still marked in that room (it shouldn't happen normally)
+              // Reset any users still marked in that room (shouldn't happen but safety check)
               connectedUsers = connectedUsers.map((u) =>
-                u.isInRoom === newIsInRoom
+                u.isInRoom === prevUserState.isInRoom
                   ? { ...u, isInRoom: null, isPlaying: false }
                   : u
               );
+            } else {
+              // Room still has users, just update it in the rooms array
+              const roomIndex = rooms.findIndex((r) => r.id === room.id);
+              if (roomIndex !== -1) {
+                rooms[roomIndex] = room;
+              }
+              io.emit("updateRooms", rooms);
             }
           }
 
@@ -371,7 +396,7 @@ const socketManager = (io, rooms, connectedUsers) => {
     });
 
     socket.on("addWolfVote", (action, roomId) => {
-      console.log("addWolfVote fn");
+      // console.log("addWolfVote fn");
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
         editGame(
@@ -533,6 +558,19 @@ const socketManager = (io, rooms, connectedUsers) => {
           "loot",
           action,
           `DEV -- {serverContent.action.message.graveRobber} ${action.selectedPlayerName}! --`
+        );
+        setRooms(rooms, game, io, roomId);
+      }
+    });
+
+    socket.on("putNightmare", (action, roomId) => {
+      let game = rooms.find((room) => room.id === roomId);
+      if (game) {
+        editGame(
+          game,
+          "putNightmare",
+          action,
+          `DEV -- {serverContent.action.message.putNightmare} ${action.selectedPlayerName}! --`
         );
         setRooms(rooms, game, io, roomId);
       }
