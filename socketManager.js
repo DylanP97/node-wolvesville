@@ -1,21 +1,19 @@
-const { checkForWinner } = require("./lib/gameActions");
-const { getCurrentTime } = require("./lib/utils");
 const {
   toVoteTime,
   toNightTime,
   toVoteTimeAftermath,
   toNightTimeAftermath,
   toDayTime,
-  assignCpuRandomSecondToEachCPU,
+  assignRandomSecondToEachCPU,
 } = require("./lib/timeOfTheDay");
 const {
   initializeGameObject,
   initializePlayersList,
   setRooms,
-  editGame,
 } = require("./lib/gameSetup");
 const { getRolesDataForQuickGame } = require("./controllers/roles");
 const cleanupOldRooms = require("./lib/cleanupOldRooms");
+const inGameEmits = require("./inGameEmits");
 
 const socketManager = (io, rooms, connectedUsers) => {
 
@@ -27,18 +25,17 @@ const socketManager = (io, rooms, connectedUsers) => {
   // Also cleanup on initial load
   cleanupOldRooms(io, rooms, connectedUsers);
 
-
-
   io.on("connection", (socket) => {
+
+    // console.log("connectedUsers socket connection: ", connectedUsers.map((usr) => usr.username));
+    // console.log("rooms socket connection: ", rooms.map((room) => room.id + " " + room.name))
+
     console.log("New client connected:", socket.id);
     const token = socket.handshake.query.token;
-
-
-    console.log((connectedUsers.some((usr) => usr.token === token)) && "some user trying to reconnect with token:");
+    console.log("is it some user trying to reconnect with token ? ", (connectedUsers.some((usr) => usr.token === token)));
     // verify if the user is already connected and having a socket change, if yes just updated his socketId
     if (connectedUsers.some((usr) => usr.token === token)) {
       const userIndex = connectedUsers.findIndex((usr) => usr.token === token);
-
       if (userIndex !== -1) {
         const user = connectedUsers[userIndex];
 
@@ -55,7 +52,6 @@ const socketManager = (io, rooms, connectedUsers) => {
             socket.join(user.isInRoom);
 
             if (user.isPlaying) {
-              // Send full game state
               socket.emit("updateGame", game);
               console.log(`Restored game state for ${user.username}`);
             } else {
@@ -76,7 +72,6 @@ const socketManager = (io, rooms, connectedUsers) => {
 
     socket.on("sendNewConnectedUser", (user) => {
       // console.log((user.username || user.name) + " is connected " + socket.id);
-
       const existingUserIndex = connectedUsers.findIndex(
         (usr) => usr.username === user.username
       );
@@ -107,7 +102,7 @@ const socketManager = (io, rooms, connectedUsers) => {
             else if (game.timeOfTheDay == "votetimeAftermath") toNightTime(game);
 
             // This runs every time when game.timeCounter == 0
-            game.playersList = assignCpuRandomSecondToEachCPU(game.playersList);
+            game.playersList = assignRandomSecondToEachCPU(game.playersList);
           }
         } else {
           console.log("and the winner is...");
@@ -142,7 +137,7 @@ const socketManager = (io, rooms, connectedUsers) => {
         userPreferences // Pass preferences to initialization
       );
       roomToJoin = initializeGameObject(roomToJoin, playersList);
-      roomToJoin.playersList = assignCpuRandomSecondToEachCPU(
+      roomToJoin.playersList = assignRandomSecondToEachCPU(
         roomToJoin.playersList
       );
 
@@ -165,7 +160,7 @@ const socketManager = (io, rooms, connectedUsers) => {
       });
 
       io.emit("updateUsers", connectedUsers);
-      
+
       // Emit launchRoom with the flag set
       io.to(roomId).emit("launchRoom", roomToJoin);
 
@@ -191,7 +186,6 @@ const socketManager = (io, rooms, connectedUsers) => {
         connectedUsers[userIndex] = {
           ...connectedUsers[userIndex],
           isInRoom: newRoom.id,
-          // isPlaying: true,
         };
       }
       io.emit("updateUsers", connectedUsers);
@@ -270,8 +264,9 @@ const socketManager = (io, rooms, connectedUsers) => {
 
     socket.on(
       "updateUserGameState",
-      (username, newIsInRoom, newIsPlaying, newGame) => {
+      (username, newIsInRoom, newIsPlaying) => {
         console.log("updateUserGameState fn");
+        console.log("parameters received:", username, newIsInRoom, newIsPlaying);
 
         let userIndex = connectedUsers.findIndex(
           (usr) => usr.username === username
@@ -279,12 +274,13 @@ const socketManager = (io, rooms, connectedUsers) => {
 
         const prevUserState = connectedUsers[userIndex];
 
+        console.log("previous user state:", prevUserState.isInRoom, prevUserState.isPlaying);
+
         if (userIndex !== -1) {
           connectedUsers[userIndex] = {
             ...connectedUsers[userIndex],
             isInRoom: newIsInRoom,
             isPlaying: newIsPlaying,
-            game: newGame,
           };
         }
 
@@ -333,314 +329,22 @@ const socketManager = (io, rooms, connectedUsers) => {
       }
     );
 
-
-    socket.on("pauseGame", (roomId) => {
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        game.isPaused = true;
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("endGame", (roomId) => {
-      console.log("endGame fn");
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        game.hasEnded = true;
-        setRooms(rooms, game, io, roomId);
-        io.emit("updateRooms", rooms);
-      }
-    });
-
-    socket.on("resumeGame", (roomId) => {
-      // console.log("resumeGame fn");
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        game.isPaused = false;
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("addVote", (action, roomId) => {
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(
-          game,
-          "addVote",
-          action,
-          `DEV -- ${action.playerName}
-          {serverContent.action.message.addVote} 
-          ${action.selectedPlayerName}!`
-        );
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("addWolfVote", (action, roomId) => {
-      // console.log("addWolfVote fn");
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(
-          game,
-          "addWolfVote",
-          action,
-          `DEV -- ${action.playerName}
-          {serverContent.action.message.addWolfVote}
-          ${action.selectedPlayerName}! --`
-        );
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("chooseJuniorWolfDeathRevenge", (actionObj, roomId) => {
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(game, "chooseJuniorWolfDeathRevenge", actionObj, null);
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("uncoverRole", (action, roomId) => {
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(
-          game,
-          "uncoverRole",
-          action,
-          null // Don't add message to general chat
-        );
-        // Add message to wolves chat instead
-        game.wolvesMessagesHistory.unshift({
-          time: getCurrentTime(),
-          author: "",
-          msg: `{serverContent.action.message.wolfSeer} ${action.selectedPlayerName}!`,
-        });
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("executePrisoner", (action, roomId) => {
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(
-          game,
-          "execute",
-          action,
-          `{serverContent.action.message.executePrisoner} 
-          ${action.selectedPlayerName}!`
-        );
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("revealPlayer", (action, roomId) => {
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(
-          game,
-          "reveal",
-          action,
-          `
-          {serverContent.action.message.seer}
-          ${action.selectedPlayerName} - ${action.selectedPlayerRole}!
-          `
-        );
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("shootBullet", (action, roomId) => {
-      console.log("shootBullet fn");
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(
-          game,
-          "shoot",
-          action,
-          `{serverContent.action.message.shootBullet} ${action.selectedPlayerName}.`
-        );
-        setRooms(rooms, game, io, roomId);
-        io.to(roomId).emit("triggerSoundForAll", "gunshot");
-      }
-    });
-
-    socket.on("pourGasoline", (action, roomId) => {
-      console.log("pourGasoline fn");
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(
-          game,
-          "pour",
-          action,
-          ` DEV -- {serverContent.action.message.pourGasoline} ${action.selectedPlayerName} --`
-        );
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("burnThemDown", (action, roomId) => {
-      console.log("burnThemDown fn");
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(
-          game,
-          "burn",
-          action,
-          ``
-        );
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("heal", (action, roomId) => {
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(game, "heal", action, `DEV -- {serverContent.action.message.heal} ${action.selectedPlayerName}! --`);
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("protectPotion", (action, roomId) => {
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(
-          game,
-          "protectPotion",
-          action,
-          `DEV --
-          ${action.selectedPlayerName}
-          {serverContent.action.message.protectPotion} --
-          `
-        );
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("poisonPotion", (action, roomId) => {
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(
-          game,
-          "poisonPotion",
-          action,
-          `{serverContent.action.message.poisonPotion}${action.selectedPlayerName}
-          `
-        );
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("lootGrave", (action, roomId) => {
-      console.log("lootGrave fn");
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(
-          game,
-          "loot",
-          action,
-          `DEV -- {serverContent.action.message.graveRobber} ${action.selectedPlayerName}! --`
-        );
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("putNightmare", (action, roomId) => {
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(
-          game,
-          "putNightmare",
-          action,
-          `DEV -- {serverContent.action.message.putNightmare} ${action.selectedPlayerName}! --`
-        );
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("assertDuty", (mayorName, roomId) => {
-      let game = rooms.find((room) => room.id === roomId);
-      if (game) {
-        editGame(
-          game,
-          "assertDuty",
-          null,
-          `
-          {serverContent.action.message.mayorReveal}   
-          ${mayorName}
-          `
-        );
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on("checkForWinner", (roomId) => {
-      let game = rooms.find((room) => room.id === roomId);
-      if (!game) {
-        console.log("game is undefined in checkForWinner");
-        return;
-      }
-      if (game.aliveList === null) {
-        game.aliveList = game.playersList.filter((p) => p.isAlive);
-      }
-      let winner = checkForWinner(game.aliveList);
-      if (winner !== null) {
-        game.winningTeam = winner;
-        setRooms(rooms, game, io, roomId);
-      }
-    });
-
-    socket.on(
-      "sendMessage",
-      (
-        msg,
-        roomId,
-        username,
-        isWolvesChat,
-        isJailerChat,
-        isJailer,
-        language
-      ) => {
-        let game = rooms.find((room) => room.id === roomId);
-        if (isJailerChat) {
-          const authorN = isJailer
-            ? language === "fr"
-              ? "Géôlier"
-              : "Jailer"
-            : username;
-          game.jailNightMessages.unshift({
-            time: getCurrentTime(),
-            author: authorN,
-            msg: msg,
-          });
-        } else if (isWolvesChat) {
-          game.wolvesMessagesHistory.unshift({
-            time: getCurrentTime(),
-            author: username,
-            msg: msg,
-          });
-        } else {
-          game.messagesHistory.unshift({
-            time: getCurrentTime(),
-            author: username,
-            msg: msg,
-          });
-        }
-        setRooms(rooms, game, io, roomId);
-      }
-    );
-
-    socket.on("registerAction", (actionObject, roomId) => {
-      // console.log("registerAction fn");
-      let game = rooms.find((room) => room.id === roomId);
-      game.registeredActions.push(actionObject);
-      setRooms(rooms, game, io, roomId);
-    });
-
     socket.on("deleteRoom", (roomId) => {
+      console.log(connectedUsers.map((usr) => usr.username + " " + usr.isInRoom + " " + usr.isPlaying));
       updatedRooms = rooms.filter((room) => room.id !== roomId);
       rooms = updatedRooms;
       io.emit("updateRooms", rooms);
-      io.emit("updateUsers", connectedUsers);
+      connectedUsers = connectedUsers.map((u) =>
+        u.isInRoom === roomId ? { ...u, isInRoom: null, isPlaying: false } : u
+      );
+
+      console.log("connectedUsers after deleteRoom: ",
+        connectedUsers.map((usr) => ({
+          username: usr.username,
+          isInRoom: usr.isInRoom,
+          isPlaying: usr.isPlaying
+        }))
+      ); io.emit("updateUsers", connectedUsers);
     });
 
     socket.on("disconnect", () => {
@@ -732,12 +436,24 @@ const socketManager = (io, rooms, connectedUsers) => {
 
       io.emit("updateUsers", connectedUsers);
 
-      console.log("connectedUsers after logout:");
-      console.log(connectedUsers.map((usr) => usr.username))
-      console.log("rooms after logout:")
-      console.log(rooms.map((room) => room.id + " " + room.name));
-
+      console.log("connectedUsers after logout: ", connectedUsers.map((usr) => usr.username));
+      console.log("rooms after logout: ", rooms.map((room) => room.id + " " + room.name))
     });
+
+    socket.on("endGame", (roomId) => {
+      console.log("endGame fn");
+      let game = rooms.find((room) => room.id === roomId);
+      if (game) {
+        game.hasEnded = Date.now();
+        setRooms(rooms, game, io, roomId);
+        io.emit("updateRooms", rooms);
+      }
+    });
+
+
+
+    inGameEmits(io, socket, rooms, connectedUsers);
+
   });
 };
 
