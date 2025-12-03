@@ -274,7 +274,7 @@ const socketManager = (io, rooms, connectedUsers) => {
 
         const prevUserState = connectedUsers[userIndex];
 
-        console.log("previous user state:", prevUserState.isInRoom, prevUserState.isPlaying);
+        // console.log("previous user state:", prevUserState.isInRoom, prevUserState.isPlaying);
 
         if (userIndex !== -1) {
           connectedUsers[userIndex] = {
