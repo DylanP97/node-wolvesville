@@ -238,7 +238,7 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
 
     socket.on("checkForWinner", (roomId) => {
         let game = rooms.find((room) => room.id === roomId);
-        if (!game) {
+        if (!game.id) {
             console.log("game is undefined in checkForWinner");
             return;
         }
