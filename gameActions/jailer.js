@@ -1,4 +1,7 @@
 /* action by the jailer role */
+const { killSelectedPlayer } = require("./general");
+const { checkIfIsInLove } = require("./cupid");
+const { getCurrentTime } = require("../lib/utils");
 
 exports.arrestPlayer = (playersList, action) => {
   playersList = playersList.map((ply) => {
@@ -20,17 +23,19 @@ exports.arrestPlayer = (playersList, action) => {
   return playersList;
 };
 
-exports.executePrisoner = (playersList) => {
-  console.log("executePrisoner fn");
-
+exports.executePrisoner = (playersList, messagesHistory = []) => {
+  let executedPlayer = null;
+  
+  // Get the player before they're executed to check isInLove
+  executedPlayer = playersList.find((ply) => ply.isUnderArrest);
+  
   playersList = playersList.map((ply) => {
     if (ply.isUnderArrest) {
-      console.log("player ", ply.name, " has been executed by the jailer");
       return {
         ...ply,
         isUnderArrest: false,
         isAlive: false,
-        isRevealed: ply.role.team === "Werewolves",
+        isRevealed: ply.isRevealed ? true : ply.role.team === "Werewolves",
       };
     } else if (ply.role.name === "Jailer") {
       return {
@@ -48,13 +53,20 @@ exports.executePrisoner = (playersList) => {
       return ply;
     }
   });
-  return playersList;
+  
+  // Check if the executed player was in love and kill their partner
+  if (executedPlayer) {
+    const result = checkIfIsInLove(executedPlayer, playersList, messagesHistory);
+    playersList = result.playersList;
+    messagesHistory = result.messagesHistory;
+  }
+  
+  return { playersList, messagesHistory };
 };
 
 exports.releasePrisoners = (playersList) => {
   playersList = playersList.map((ply) => {
     if (ply.isUnderArrest) {
-      console.log("player ", ply.name, " is no longer under arrest");
       return {
         ...ply,
         isUnderArrest: false,

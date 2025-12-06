@@ -1,4 +1,4 @@
-const { getCurrentTime } = require("../utils");
+const { getCurrentTime } = require("../lib/utils");
 const { killSelectedPlayer } = require("./general");
 const { checkIfIsInLove } = require("./cupid");
 
@@ -49,13 +49,11 @@ exports.murder = (playersList, messagesHistory, killedBySK, action) => {
       author: "",
       msg: `💀🔪 ${attackedPlayer.name} {serverContent.action.message.killedBySK} ${killedBySK > 2 ? additionalMsg : ""} `,
     });
-    // const { playersListE2, messagesHistoryE2 } = checkIfIsInLove(
-    //   attackedPlayer,
-    //   playersList,
-    //   messagesHistory
-    // );
-    // playersList = playersListE2;
-    // messagesHistory = messagesHistoryE2;
+    // Check if the dead player was in love and kill their partner
+    // Use the player object before death to check isInLove property
+    const result = checkIfIsInLove(attackedPlayer, playersList, messagesHistory);
+    playersList = result.playersList;
+    messagesHistory = result.messagesHistory;
   }
 
   const playersListEdit = playersList;

@@ -1,4 +1,4 @@
-const { getCurrentTime } = require("../utils");
+const { getCurrentTime } = require("../lib/utils");
 const { killSelectedPlayer } = require("./general");
 
 exports.linkLovers = (playersList, action) => {
@@ -7,20 +7,14 @@ exports.linkLovers = (playersList, action) => {
       return {
         ...ply,
         isInLove: true,
-        role: {
-          ...ply.role,
-          team: "Lovers",
-        },
+        loverPartnerId: action.lover2Id,
       };
     }
     if (ply.id === action.lover2Id) {
       return {
         ...ply,
         isInLove: true,
-        role: {
-          ...ply.role,
-          team: "Lovers",
-        },
+        loverPartnerId: action.lover1Id,
       };
     }
     if (ply.id === action.cupidId) {
@@ -33,6 +27,7 @@ exports.linkLovers = (playersList, action) => {
             nbrLeftToPerform: 0,
           },
         },
+        linkedLovers: [action.lover1Id, action.lover2Id], // Track who Cupid linked
       };
     }
     return ply;
@@ -40,24 +35,27 @@ exports.linkLovers = (playersList, action) => {
 };
 
 exports.checkIfIsInLove = (deadPlayer, playersList, messagesHistory) => {
-  if (deadPlayer.isInLove) {
-    const lovers = this.findLovers(playersList);
-    const partner = lovers.find((partner) => partner.id !== deadPlayer.id);
-    playersList = killSelectedPlayer(partner.id, playersList);
-    messagesHistory.unshift({
-      time: getCurrentTime(),
-      author: "",
-      msg: `💀💔 ${partner.name} {serverContent.action.message.dieWithLover} ${deadPlayer.name}!`,
-    });
+  if (deadPlayer.isInLove && deadPlayer.loverPartnerId) {
+    const partner = playersList.find((ply) => ply.id === deadPlayer.loverPartnerId);
+    
+    if (partner && partner.isAlive) {
+      playersList = killSelectedPlayer(partner.id, playersList);
+      messagesHistory.unshift({
+        time: getCurrentTime(),
+        author: "",
+        msg: `💀💔 ${partner.name} {serverContent.action.message.dieWithLover} ${deadPlayer.name}!`,
+      });
+    }
   }
 
-  const playersListE2 = playersList;
-  const messagesHistoryE2 = messagesHistory;
-
-  return { playersListE2, messagesHistoryE2 };
+  return { playersList, messagesHistory };
 };
 
 exports.findLovers = (playersList) => {
   const lovers = playersList.filter((ply) => ply.isInLove);
   return lovers;
+};
+
+exports.findCupid = (playersList) => {
+  return playersList.find((ply) => ply.role.name === "Cupid");
 };

@@ -1,12 +1,5 @@
 // serverStore.js
 
-// const state = {
-//   connectedUsers: [],
-//   rooms: []
-// };
-
-// module.exports = state;
-
 
 let connectedUsers = [];
 let rooms = [];

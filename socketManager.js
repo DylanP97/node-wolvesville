@@ -257,6 +257,7 @@ const socketManager = (io, rooms, connectedUsers) => {
 
       // update array list of rooms both in server and client
       rooms.push(newQuickRoom);
+      console.log(rooms)
       io.emit("updateRooms", rooms);
       // launch game
       startGame(newQuickRoom, newQuickRoom.id);
@@ -303,16 +304,19 @@ const socketManager = (io, rooms, connectedUsers) => {
                 // Delete the room entirely if no real users are left
                 console.log("room deleted - no more real users");
 
-                let updatedRooms = rooms.filter((r) => r.id !== room.id);
-                rooms = updatedRooms;
+                // ✅ Modifié : suppression en place au lieu de réassignation
+                const roomIndexToDelete = rooms.findIndex((r) => r.id === room.id);
+                if (roomIndexToDelete !== -1) {
+                  rooms.splice(roomIndexToDelete, 1);
+                }
                 io.emit("updateRooms", rooms);
 
-                // Reset any users still marked in that room (shouldn't happen but safety check)
-                connectedUsers = connectedUsers.map((u) =>
-                  u.isInRoom === prevUserState.isInRoom
-                    ? { ...u, isInRoom: null, isPlaying: false }
-                    : u
-                );
+                // ✅ Modifié : modification en place au lieu de réassignation
+                connectedUsers.forEach((u, index) => {
+                  if (u.isInRoom === prevUserState.isInRoom) {
+                    connectedUsers[index] = { ...u, isInRoom: null, isPlaying: false };
+                  }
+                });
               } else {
                 // Room still has users, just update it in the rooms array
                 const roomIndex = rooms.findIndex((r) => r.id === room.id);
@@ -331,12 +335,21 @@ const socketManager = (io, rooms, connectedUsers) => {
 
     socket.on("deleteRoom", (roomId) => {
       console.log(connectedUsers.map((usr) => usr.username + " " + usr.isInRoom + " " + usr.isPlaying));
-      updatedRooms = rooms.filter((room) => room.id !== roomId);
-      rooms = updatedRooms;
+      
+      // ✅ Modifié : suppression en place au lieu de réassignation
+      const roomIndex = rooms.findIndex((room) => room.id === roomId);
+      if (roomIndex !== -1) {
+        rooms.splice(roomIndex, 1);
+      }
+      
       io.emit("updateRooms", rooms);
-      connectedUsers = connectedUsers.map((u) =>
-        u.isInRoom === roomId ? { ...u, isInRoom: null, isPlaying: false } : u
-      );
+      
+      // ✅ Modifié : modification en place au lieu de réassignation
+      connectedUsers.forEach((u, index) => {
+        if (u.isInRoom === roomId) {
+          connectedUsers[index] = { ...u, isInRoom: null, isPlaying: false };
+        }
+      });
 
       console.log("connectedUsers after deleteRoom: ",
         connectedUsers.map((usr) => ({
@@ -344,7 +357,9 @@ const socketManager = (io, rooms, connectedUsers) => {
           isInRoom: usr.isInRoom,
           isPlaying: usr.isPlaying
         }))
-      ); io.emit("updateUsers", connectedUsers);
+      );
+      
+      io.emit("updateUsers", connectedUsers);
     });
 
     socket.on("disconnect", () => {
@@ -376,6 +391,7 @@ const socketManager = (io, rooms, connectedUsers) => {
 
                 if (room.usersInTheRoom.length === 0 && room.isLaunched) {
                   console.log(`Deleting abandoned game room: ${room.name}`);
+                  // ✅ Modifié : suppression directe en place
                   rooms.splice(roomIndex, 1);
                   io.emit("updateRooms", rooms);
                 }
@@ -387,6 +403,7 @@ const socketManager = (io, rooms, connectedUsers) => {
               (u) => u.token === user.token
             );
             if (userIndex !== -1) {
+              // ✅ Modifié : suppression directe en place
               connectedUsers.splice(userIndex, 1);
               io.emit("updateUsers", connectedUsers);
             }
@@ -405,9 +422,13 @@ const socketManager = (io, rooms, connectedUsers) => {
 
       if (!user) return;
 
-      connectedUsers = connectedUsers.filter(
-        (usr) => usr.socketId !== socket.id
+      // ✅ Modifié : suppression en place
+      const userIndex = connectedUsers.findIndex(
+        (usr) => usr.socketId === socket.id
       );
+      if (userIndex !== -1) {
+        connectedUsers.splice(userIndex, 1);
+      }
 
       // If the user left a room, check if the room needs to be deleted      
       let room = rooms.find((r) => r.id === user.isInRoom);
@@ -421,16 +442,20 @@ const socketManager = (io, rooms, connectedUsers) => {
 
         if (!hasOtherRealUsers) {
           // Delete the room entirely if no real users are left
-          let updatedRooms = rooms.filter((r) => r.id !== room.id);
-          rooms = updatedRooms;
+          // ✅ Modifié : suppression en place
+          const roomIndexToDelete = rooms.findIndex((r) => r.id === room.id);
+          if (roomIndexToDelete !== -1) {
+            rooms.splice(roomIndexToDelete, 1);
+          }
           io.emit("updateRooms", rooms);
 
           // Reset any users still marked in that room (it shouldn't happen normally)
-          connectedUsers = connectedUsers.map((u) =>
-            u.isInRoom === user.isInRoom
-              ? { ...u, isInRoom: null, isPlaying: false }
-              : u
-          );
+          // ✅ Modifié : modification en place
+          connectedUsers.forEach((u, index) => {
+            if (u.isInRoom === user.isInRoom) {
+              connectedUsers[index] = { ...u, isInRoom: null, isPlaying: false };
+            }
+          });
         }
       }
 

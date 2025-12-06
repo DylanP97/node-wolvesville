@@ -3,8 +3,10 @@ const { getCurrentTime } = require("./lib/utils");
 const { editGame, setRooms } = require("./lib/gameSetup");
 
 const inGameEmits = (io, socket, rooms, connectedUsers) => {
-
-    /*** in game emits ****/
+    // ✅ Plus besoin de getRooms() car rooms est maintenant toujours à jour
+    // grâce aux modifications en place dans socketManager
+    
+    /*** in-game emits ****/
 
     socket.on("pauseGame", (roomId) => {
         let game = rooms.find((room) => room.id === roomId);
@@ -238,14 +240,19 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
 
     socket.on("checkForWinner", (roomId) => {
         let game = rooms.find((room) => room.id === roomId);
+        if (!game) {
+            console.log("game is undefined in checkForWinner for roomId:", roomId);
+            console.log("Available rooms:", rooms.map(r => r.id));
+            return;
+        }
         if (!game.id) {
-            console.log("game is undefined in checkForWinner");
+            console.log("game.id is undefined in checkForWinner");
             return;
         }
         if (game.aliveList === null) {
             game.aliveList = game.playersList.filter((p) => p.isAlive);
         }
-        let winner = checkForWinner(game.aliveList);
+        let winner = checkForWinner(game.aliveList, game.playersList);
         if (winner !== null) {
             game.winningTeam = winner;
             setRooms(rooms, game, io, roomId);
@@ -264,6 +271,8 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
             language
         ) => {
             let game = rooms.find((room) => room.id === roomId);
+            if (!game) return;
+            
             if (isJailerChat) {
                 const authorN = isJailer
                     ? language === "fr"
@@ -295,6 +304,7 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
     socket.on("registerAction", (actionObject, roomId) => {
         // console.log("registerAction fn");
         let game = rooms.find((room) => room.id === roomId);
+        if (!game) return;
         game.registeredActions.push(actionObject);
         setRooms(rooms, game, io, roomId);
     });

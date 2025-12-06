@@ -1,4 +1,4 @@
-const { getCurrentTime } = require("../utils");
+const { getCurrentTime } = require("../lib/utils");
 
 
 exports.revealPlayer = (selectedPlayerId, seerId, game) => {

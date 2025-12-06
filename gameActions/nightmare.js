@@ -4,8 +4,6 @@
  */
 
 exports.putNightmare = (playersList, selectedPlayerId, nightmareWerewolfId) => {
-  console.log("nightmare fn")
-
   const nightmareWerewolf = playersList.find((p) => p.id === nightmareWerewolfId);
   
   if (!nightmareWerewolf || nightmareWerewolf.role.canPerform1.nbrLeftToPerform <= 0) {

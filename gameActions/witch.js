@@ -5,8 +5,6 @@ exports.useProtectPotion = (playersList, selectedPlayerId, witchId) => {
     return playersList;
   }
 
-  console.log("useProtectPotion called");
-
   playersList = playersList.map((player) => {
     if (player.id === witchId) {
       return {
@@ -46,18 +44,20 @@ exports.reinitializeProtection = (playersList) => {
 };
 
 
-exports.usePoisonPotion = (playersList, selectedPlayerId, witchId) => {
+const { checkIfIsInLove } = require("./cupid");
+
+exports.usePoisonPotion = (playersList, selectedPlayerId, witchId, messagesHistory = []) => {
   const witch = playersList.find((p) => p.id === witchId);
   // Check if witch has nightmares - they can't use their ability
   if (witch && witch.willHaveNightmares) {
-    return playersList;
+    return { playersList, messagesHistory };
   }
 
-  console.log("usePoisonPotion called");
+  // Get the player before they're killed to check isInLove
+  const poisonedPlayer = playersList.find((p) => p.id === selectedPlayerId);
 
   playersList = playersList.map((player) => {
     if (player.id === witchId) {
-      console.log("hello d55");
       return {
         ...player,
         role: {
@@ -78,6 +78,13 @@ exports.usePoisonPotion = (playersList, selectedPlayerId, witchId) => {
     return player;
   });
 
-  return playersList;
+  // Check if the poisoned player was in love and kill their partner
+  if (poisonedPlayer) {
+    const result = checkIfIsInLove(poisonedPlayer, playersList, messagesHistory);
+    playersList = result.playersList;
+    messagesHistory = result.messagesHistory;
+  }
+
+  return { playersList, messagesHistory };
 };
 

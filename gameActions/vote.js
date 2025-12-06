@@ -1,6 +1,7 @@
-const { getCurrentTime } = require("../utils");
+const { getCurrentTime } = require("../lib/utils");
 const { bittenByWolves } = require("./cursed");
 const { killSelectedPlayer } = require("./general");
+const { checkIfIsInLove } = require("./cupid");
 
 exports.voteAgainst = (selectedPlayerId, playersList, nbr, playerId, selectedPlayerName) => {
   playersList = playersList.map((player) => {
@@ -105,30 +106,33 @@ exports.handleVote = (playersList, messagesHistory, winningTeam) => {
       author: "",
       msg: `{serverContent.villageVote.outcome.null}`,
     });
-  } else {
-    playersList = killSelectedPlayer(mostVotedAgainstPlayer.id, playersList);
-    if (mostVotedAgainstPlayer.role.name === "Fool") {
-      messagesHistory.unshift({
-        time: getCurrentTime(),
-        author: "",
-        msg: `{serverContent.villageVote.outcome.foolWins}`,
-      });
-      winningTeam = {
-        name: "Fool",
-        image:
-          "https://res.cloudinary.com/dnhq4fcyp/image/upload/v1706531396/roles/fool_ngedk0.png",
-        winnerPlayers: [mostVotedAgainstPlayer],
-      };
     } else {
-      messagesHistory.unshift({
-        time: getCurrentTime(),
-        author: "",
-        msg: `{serverContent.villageVote.outcome.basic} ${playersList[mostVotedAgainstPlayer.id].name
-          }`,
-      });
-      // checkIfIsInLove(mostVotedAgainstPlayer, updatedPlayersList, setUpdatedPlayersList, displayAction);
+      playersList = killSelectedPlayer(mostVotedAgainstPlayer.id, playersList);
+      if (mostVotedAgainstPlayer.role.name === "Fool") {
+        messagesHistory.unshift({
+          time: getCurrentTime(),
+          author: "",
+          msg: `{serverContent.villageVote.outcome.foolWins}`,
+        });
+        winningTeam = {
+          name: "Fool",
+          image:
+            "https://res.cloudinary.com/dnhq4fcyp/image/upload/v1706531396/roles/fool_ngedk0.png",
+          winnerPlayers: [mostVotedAgainstPlayer],
+        };
+      } else {
+        messagesHistory.unshift({
+          time: getCurrentTime(),
+          author: "",
+          msg: `{serverContent.villageVote.outcome.basic} ${mostVotedAgainstPlayer.name}`,
+        });
+        // Check if the dead player was in love and kill their partner
+        // Use the player object before death to check isInLove property
+        const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory);
+        playersList = result.playersList;
+        messagesHistory = result.messagesHistory;
+      }
     }
-  }
 
   playersList = this.initializeVotes(playersList);
 
@@ -225,10 +229,13 @@ exports.handleWolvesVote = (playersList, messagesHistory) => {
       messagesHistory.unshift({
         time: getCurrentTime(),
         author: "",
-        msg: `{serverContent.action.message.wolvesMurdered} ${playersList[mostVotedAgainstPlayer.id].name
-          }!`,
+        msg: `{serverContent.action.message.wolvesMurdered} ${mostVotedAgainstPlayer.name}!`,
       });
-      // checkIfIsInLove(mostVotedAgainstPlayer, updatedPlayersList, setUpdatedPlayersList, displayAction);
+      // Check if the dead player was in love and kill their partner
+      // Use the player object before death to check isInLove property
+      const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory);
+      playersList = result.playersList;
+      messagesHistory = result.messagesHistory;
     }
   }
 

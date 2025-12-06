@@ -1,9 +1,8 @@
-const { getCurrentTime } = require("../utils");
+const { getCurrentTime } = require("../lib/utils");
 
 exports.pourGasoline = (playersList, action) => {
     playersList = playersList.map((ply) => {
         if (ply.id === action.selectedPlayerId) {
-            console.log("player ", ply.name, " is marked with gasoline");
             return {
                 ...ply,
                 isMarkedWithGasoline: true,
@@ -72,7 +71,7 @@ exports.burnThemDown = (game, pyroId) => {
                 return {
                     ...ply,
                     isAlive: false,
-                    isRevealed: ply.role.team === "Werewolves",
+                    isRevealed: ply.isRevealed ? true : ply.role.team === "Werewolves",
                     isMarkedWithGasoline: false,
                     wasBurnedByArsonist: true, // flag for front-end animation
                 };
@@ -80,7 +79,6 @@ exports.burnThemDown = (game, pyroId) => {
 
         }
         if (ply.id === pyroId) {
-            console.log("resetting pyro stats");
             return {
                 ...ply,
                 nbrOfPouredPlayers: 0,
@@ -89,6 +87,5 @@ exports.burnThemDown = (game, pyroId) => {
         return ply;
     });
 
-    console.log("fire victims: ", fireVictims);
     return game;
 }

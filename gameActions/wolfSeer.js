@@ -1,4 +1,4 @@
-const { getCurrentTime } = require("../utils");
+const { getCurrentTime } = require("../lib/utils");
 
 exports.uncoverRole = (selectedPlayerId, wolfSeerId, playersList) => {
   const wolfSeer = playersList.find(player => player.id === wolfSeerId);
