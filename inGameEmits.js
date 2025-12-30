@@ -1,11 +1,11 @@
 const { checkForWinner } = require("./lib/gameActions");
 const { getCurrentTime } = require("./lib/utils");
-const { editGame, setRooms } = require("./lib/gameSetup");
+const { editGame, setRooms, pauseForAnimation } = require("./lib/gameSetup");
 
 const inGameEmits = (io, socket, rooms, connectedUsers) => {
     // ✅ Plus besoin de getRooms() car rooms est maintenant toujours à jour
     // grâce aux modifications en place dans socketManager
-    
+
     /*** in-game emits ****/
 
     socket.on("pauseGame", (roomId) => {
@@ -111,6 +111,8 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
           `
             );
             setRooms(rooms, game, io, roomId);
+            io.to(roomId).emit("triggerAnimationForAll", "seerForesee");
+            pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });
 
@@ -126,6 +128,8 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
             );
             setRooms(rooms, game, io, roomId);
             io.to(roomId).emit("triggerSoundForAll", "gunshot");
+            io.to(roomId).emit("triggerAnimationForAll", "angryShooter");
+            pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });
 
@@ -206,6 +210,8 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
                 `DEV -- {serverContent.action.message.graveRobber} ${action.selectedPlayerName}! --`
             );
             setRooms(rooms, game, io, roomId);
+            io.to(roomId).emit("triggerAnimationForAll", "graveRobber");
+            pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });
 
@@ -235,6 +241,8 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
           `
             );
             setRooms(rooms, game, io, roomId);
+            io.to(roomId).emit("triggerAnimationForAll", "theMayor");
+            pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });
 
@@ -272,7 +280,7 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
         ) => {
             let game = rooms.find((room) => room.id === roomId);
             if (!game) return;
-            
+
             if (isJailerChat) {
                 const authorN = isJailer
                     ? language === "fr"

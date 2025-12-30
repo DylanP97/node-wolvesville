@@ -11,6 +11,8 @@ exports.murder = (playersList, messagesHistory, killedBySK, action) => {
   const wasHealed = attackedPlayer.isHealed;
   const isWolf = attackedPlayer.role.team === "Werewolves";
   const totalWolves = playersList.filter((ply) => ply.role.team === "Werewolves").length;
+  
+  let shouldTriggerAnimation = false; // Flag for animation
 
   if (isWolf && totalWolves > 2) {
     messagesHistory.unshift({
@@ -41,16 +43,18 @@ exports.murder = (playersList, messagesHistory, killedBySK, action) => {
       msg: `DEV -- ${attackedPlayer.name} was healed by doctor from SK attack`,
     });
   } else {
-    let additionalMsg = `{serverContent.action.message.numberOfSKKills} ${killedBySK}`;
     killedBySK += 1;
+    let additionalMsg = `{serverContent.action.message.numberOfSKKills} ${killedBySK}`;
     playersList = killSelectedPlayer(action.selectedPlayerId, playersList);
     messagesHistory.unshift({
       time: getCurrentTime(),
       author: "",
       msg: `💀🔪 ${attackedPlayer.name} {serverContent.action.message.killedBySK} ${killedBySK > 2 ? additionalMsg : ""} `,
     });
+    
+    shouldTriggerAnimation = true; // Trigger animation when SK kills
+    
     // Check if the dead player was in love and kill their partner
-    // Use the player object before death to check isInLove property
     const result = checkIfIsInLove(attackedPlayer, playersList, messagesHistory);
     playersList = result.playersList;
     messagesHistory = result.messagesHistory;
@@ -60,5 +64,5 @@ exports.murder = (playersList, messagesHistory, killedBySK, action) => {
   const messagesHistoryEdit = messagesHistory;
   const killedBySKEdit = killedBySK;
 
-  return { playersListEdit, messagesHistoryEdit, killedBySKEdit };
+  return { playersListEdit, messagesHistoryEdit, killedBySKEdit, shouldTriggerAnimation };
 };

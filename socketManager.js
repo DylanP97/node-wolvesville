@@ -10,6 +10,7 @@ const {
   initializeGameObject,
   initializePlayersList,
   setRooms,
+  pauseForAnimation,
 } = require("./lib/gameSetup");
 const { getRolesDataForQuickGame } = require("./controllers/roles");
 const cleanupOldRooms = require("./lib/cleanupOldRooms");
@@ -114,6 +115,11 @@ const socketManager = (io, rooms, connectedUsers) => {
         if (roomIndex !== -1) {
           rooms[roomIndex] = game;
           io.to(game.id).emit("updateGame", game);
+
+          if (game.skAnimationTriggered) {
+            io.to(game.id).emit("triggerAnimationForAll", "serialKilling");
+            pauseForAnimation(game, io, game.id, 6000, rooms);
+          }
         }
 
         setTimeout(() => updateGame(game), 1000);
@@ -335,15 +341,15 @@ const socketManager = (io, rooms, connectedUsers) => {
 
     socket.on("deleteRoom", (roomId) => {
       console.log(connectedUsers.map((usr) => usr.username + " " + usr.isInRoom + " " + usr.isPlaying));
-      
+
       // ✅ Modifié : suppression en place au lieu de réassignation
       const roomIndex = rooms.findIndex((room) => room.id === roomId);
       if (roomIndex !== -1) {
         rooms.splice(roomIndex, 1);
       }
-      
+
       io.emit("updateRooms", rooms);
-      
+
       // ✅ Modifié : modification en place au lieu de réassignation
       connectedUsers.forEach((u, index) => {
         if (u.isInRoom === roomId) {
@@ -358,7 +364,7 @@ const socketManager = (io, rooms, connectedUsers) => {
           isPlaying: usr.isPlaying
         }))
       );
-      
+
       io.emit("updateUsers", connectedUsers);
     });
 
