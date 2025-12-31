@@ -144,6 +144,8 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
                 ` DEV -- {serverContent.action.message.pourGasoline} ${action.selectedPlayerName} --`
             );
             setRooms(rooms, game, io, roomId);
+            io.to(roomId).emit("triggerAnimationForAll", "arsonistPlay");
+            pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });
 
@@ -196,6 +198,8 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
           `
             );
             setRooms(rooms, game, io, roomId);
+            io.to(roomId).emit("triggerAnimationForAll", "witchPoison");
+            pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });
 
