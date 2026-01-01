@@ -106,33 +106,33 @@ exports.handleVote = (playersList, messagesHistory, winningTeam) => {
       author: "",
       msg: `{serverContent.villageVote.outcome.null}`,
     });
+  } else {
+    playersList = killSelectedPlayer(mostVotedAgainstPlayer.id, playersList);
+    if (mostVotedAgainstPlayer.role.name === "Fool") {
+      messagesHistory.unshift({
+        time: getCurrentTime(),
+        author: "",
+        msg: `{serverContent.villageVote.outcome.foolWins}`,
+      });
+      winningTeam = {
+        name: "Fool",
+        image:
+          "https://res.cloudinary.com/dnhq4fcyp/image/upload/v1706531396/roles/fool_ngedk0.png",
+        winnerPlayers: [mostVotedAgainstPlayer],
+      };
     } else {
-      playersList = killSelectedPlayer(mostVotedAgainstPlayer.id, playersList);
-      if (mostVotedAgainstPlayer.role.name === "Fool") {
-        messagesHistory.unshift({
-          time: getCurrentTime(),
-          author: "",
-          msg: `{serverContent.villageVote.outcome.foolWins}`,
-        });
-        winningTeam = {
-          name: "Fool",
-          image:
-            "https://res.cloudinary.com/dnhq4fcyp/image/upload/v1706531396/roles/fool_ngedk0.png",
-          winnerPlayers: [mostVotedAgainstPlayer],
-        };
-      } else {
-        messagesHistory.unshift({
-          time: getCurrentTime(),
-          author: "",
-          msg: `{serverContent.villageVote.outcome.basic} ${mostVotedAgainstPlayer.name}`,
-        });
-        // Check if the dead player was in love and kill their partner
-        // Use the player object before death to check isInLove property
-        const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory);
-        playersList = result.playersList;
-        messagesHistory = result.messagesHistory;
-      }
+      messagesHistory.unshift({
+        time: getCurrentTime(),
+        author: "",
+        msg: `{serverContent.villageVote.outcome.basic} ${mostVotedAgainstPlayer.name}`,
+      });
+      // Check if the dead player was in love and kill their partner
+      // Use the player object before death to check isInLove property
+      const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory);
+      playersList = result.playersList;
+      messagesHistory = result.messagesHistory;
     }
+  }
 
   playersList = this.initializeVotes(playersList);
 
@@ -144,12 +144,13 @@ exports.handleVote = (playersList, messagesHistory, winningTeam) => {
 };
 
 exports.handleWolvesVote = (playersList, messagesHistory) => {
-  // console.log("handleWolvesVote");
-  // console.log(playersList);
+
 
   const wolves = playersList.filter((ply) => ply.role.team === "Werewolves");
   const mostVotedAgainstPlayer =
     this.findPlayerWithMostWolvesVotes(playersList);
+
+  let shouldTriggerWolvesAnimation = false; // Flag for animation
 
   if (!mostVotedAgainstPlayer) {
     if (wolves.length > 0) {
@@ -231,6 +232,9 @@ exports.handleWolvesVote = (playersList, messagesHistory) => {
         author: "",
         msg: `{serverContent.action.message.wolvesMurdered} ${mostVotedAgainstPlayer.name}!`,
       });
+
+      shouldTriggerWolvesAnimation = true; // Trigger animation when wolves kill
+
       // Check if the dead player was in love and kill their partner
       // Use the player object before death to check isInLove property
       const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory);
@@ -247,5 +251,6 @@ exports.handleWolvesVote = (playersList, messagesHistory) => {
   return {
     playersListEdit,
     messagesHistoryEdit,
+    shouldTriggerWolvesAnimation,
   };
 };

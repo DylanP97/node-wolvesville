@@ -112,7 +112,7 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
             );
             setRooms(rooms, game, io, roomId);
             io.to(roomId).emit("triggerAnimationForAll", "seerForesee");
-            pauseForAnimation(game, io, roomId, 6000, rooms);
+            pauseForAnimation(game, io, roomId, 3000, rooms);
         }
     });
 
@@ -144,8 +144,6 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
                 ` DEV -- {serverContent.action.message.pourGasoline} ${action.selectedPlayerName} --`
             );
             setRooms(rooms, game, io, roomId);
-            io.to(roomId).emit("triggerAnimationForAll", "arsonistPlay");
-            pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });
 
@@ -160,6 +158,8 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
                 ``
             );
             setRooms(rooms, game, io, roomId);
+            io.to(roomId).emit("triggerAnimationForAll", "arsonistPlay");
+            pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });
 

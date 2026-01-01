@@ -11,6 +11,7 @@ const {
   initializePlayersList,
   setRooms,
   pauseForAnimation,
+  processAnimationQueue,
 } = require("./lib/gameSetup");
 const { getRolesDataForQuickGame } = require("./controllers/roles");
 const cleanupOldRooms = require("./lib/cleanupOldRooms");
@@ -89,42 +90,48 @@ const socketManager = (io, rooms, connectedUsers) => {
       if (game.hasEnded || game.showingRoleReveal) {
         console.log("the game has ended or showing role reveal");
         return;
-      } else if (game.isPaused) {
-        setTimeout(() => updateGame(game), 1000);
-      } else {
-        if (game.winningTeam === null) {
-          game.timeCounter -= 1000;
+      }
 
-          if (game.timeCounter == 0) {
-            if (game.timeOfTheDay == "nighttime") toNightTimeAftermath(game);
-            else if (game.timeOfTheDay == "nighttimeAftermath") toDayTime(game);
-            else if (game.timeOfTheDay == "daytime") toVoteTime(game);
-            else if (game.timeOfTheDay == "votetime") toVoteTimeAftermath(game);
-            else if (game.timeOfTheDay == "votetimeAftermath") toNightTime(game);
-
-            // This runs every time when game.timeCounter == 0
-            game.playersList = assignRandomSecondToEachCPU(game.playersList);
-          }
-        } else {
-          console.log("and the winner is...");
-          console.log(game.winningTeam);
-          game.isPaused = true;
-        }
-
-        const roomIndex = rooms.findIndex((r) => r.id === game.id);
-        if (roomIndex !== -1) {
-          rooms[roomIndex] = game;
-          io.to(game.id).emit("updateGame", game);
-
-          if (game.skAnimationTriggered) {
-            io.to(game.id).emit("triggerAnimationForAll", "serialKilling");
-            pauseForAnimation(game, io, game.id, 6000, rooms);
-          }
-        }
-
+      if (game.isPaused) {
         setTimeout(() => updateGame(game), 1000);
         return;
       }
+
+      if (game.winningTeam === null) {
+        game.timeCounter -= 1000;
+
+        if (game.timeCounter === 0) {
+          if (game.timeOfTheDay === "nighttime")
+            toNightTimeAftermath(game);
+          else if (game.timeOfTheDay === "nighttimeAftermath")
+            toDayTime(game);
+          else if (game.timeOfTheDay === "daytime")
+            toVoteTime(game);
+          else if (game.timeOfTheDay === "votetime")
+            toVoteTimeAftermath(game);
+          else if (game.timeOfTheDay === "votetimeAftermath")
+            toNightTime(game);
+
+          game.playersList = assignRandomSecondToEachCPU(
+            game.playersList
+          );
+        }
+      } else {
+        console.log("and the winner is...");
+        console.log(game.winningTeam);
+        game.isPaused = true;
+      }
+
+      const roomIndex = rooms.findIndex((r) => r.id === game.id);
+      if (roomIndex !== -1) {
+        rooms[roomIndex] = game;
+        io.to(game.id).emit("updateGame", game);
+
+        // ✅ single call, handles ALL animations safely
+        processAnimationQueue(game, io, game.id, rooms);
+      }
+
+      setTimeout(() => updateGame(game), 1000);
     };
 
     const startGame = (roomToJoin, roomId) => {
