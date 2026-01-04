@@ -91,8 +91,7 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
                 game,
                 "execute",
                 action,
-                `{serverContent.action.message.executePrisoner} 
-          ${action.selectedPlayerName}!`
+                null
             );
             setRooms(rooms, game, io, roomId);
         }
@@ -124,7 +123,7 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
                 game,
                 "shoot",
                 action,
-                `{serverContent.action.message.shootBullet} ${action.selectedPlayerName}.`
+                null
             );
             setRooms(rooms, game, io, roomId);
             io.to(roomId).emit("triggerSoundForAll", "gunshot");
@@ -155,10 +154,25 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
                 game,
                 "burn",
                 action,
-                ``
+                null
             );
             setRooms(rooms, game, io, roomId);
             io.to(roomId).emit("triggerAnimationForAll", "arsonistPlay");
+            pauseForAnimation(game, io, roomId, 6000, rooms);
+        }
+    });
+
+    socket.on("revive", (action, roomId) => {
+        let game = rooms.find((room) => room.id === roomId);
+        if (game) {
+            editGame(
+                game,
+                "revive",
+                action,
+                null
+            );
+            setRooms(rooms, game, io, roomId);
+            io.to(roomId).emit("triggerAnimationForAll", "reviveMedium");
             pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });
@@ -194,8 +208,7 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
                 game,
                 "poisonPotion",
                 action,
-                `{serverContent.action.message.poisonPotion}${action.selectedPlayerName}
-          `
+                null
             );
             setRooms(rooms, game, io, roomId);
             io.to(roomId).emit("triggerAnimationForAll", "witchPoison");
@@ -279,6 +292,7 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
             username,
             isWolvesChat,
             isJailerChat,
+            isMediumChat,
             isJailer,
             language
         ) => {
@@ -300,6 +314,13 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
                 game.wolvesMessagesHistory.unshift({
                     time: getCurrentTime(),
                     author: username,
+                    msg: msg,
+                });
+            } else if (isMediumChat) {
+                // Medium chat - anonymous messages (author is empty or "Dead" for dead players)
+                game.mediumMessagesHistory.unshift({
+                    time: getCurrentTime(),
+                    author: "", // Anonymous - medium and dead players don't show names
                     msg: msg,
                 });
             } else {

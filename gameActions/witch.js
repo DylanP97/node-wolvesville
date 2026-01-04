@@ -73,6 +73,7 @@ exports.usePoisonPotion = (playersList, selectedPlayerId, witchId, messagesHisto
       return {
         ...player,
         isAlive: false,
+        isRevealed: player.isRevealed ? true : player.role.team === "Werewolves",
       };
     }
     return player;
@@ -80,6 +81,21 @@ exports.usePoisonPotion = (playersList, selectedPlayerId, witchId, messagesHisto
 
   // Check if the poisoned player was in love and kill their partner
   if (poisonedPlayer) {
+    // Add poison message first
+    const { getCurrentTime } = require("../lib/utils");
+    messagesHistory.unshift({
+      time: getCurrentTime(),
+      author: "",
+      msg: `{serverContent.action.message.poisonPotion}${poisonedPlayer.name}`,
+    });
+    // Reveal if the poisoned player was a werewolf (only if not already revealed)
+    if (poisonedPlayer.role.team === "Werewolves" && !poisonedPlayer.isRevealed) {
+      messagesHistory.unshift({
+        time: getCurrentTime(),
+        author: "",
+        msg: `{serverContent.action.message.werewolfReveal}${poisonedPlayer.name}{serverContent.action.message.wasWerewolf}`,
+      });
+    }
     const result = checkIfIsInLove(poisonedPlayer, playersList, messagesHistory);
     playersList = result.playersList;
     messagesHistory = result.messagesHistory;

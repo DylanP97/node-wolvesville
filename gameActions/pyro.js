@@ -62,11 +62,20 @@ exports.burnThemDown = (game, pyroId) => {
             }
 
             else {
+                // Add burn message first
                 game.messagesHistory.unshift({
                     time: getCurrentTime(),
                     author: "",
                     msg: `{serverContent.action.message.burnByFire} ${ply.name}`,
                 });
+                // Add werewolf reveal message immediately after if applicable (only if not already revealed)
+                if (ply.role.team === "Werewolves" && !ply.isRevealed) {
+                    game.messagesHistory.unshift({
+                        time: getCurrentTime(),
+                        author: "",
+                        msg: `{serverContent.action.message.werewolfReveal}${ply.name}{serverContent.action.message.wasWerewolf}`,
+                    });
+                }
                 fireVictims += 1;
                 return {
                     ...ply,

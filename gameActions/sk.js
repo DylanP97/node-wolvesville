@@ -52,6 +52,15 @@ exports.murder = (playersList, messagesHistory, killedBySK, action) => {
       msg: `💀🔪 ${attackedPlayer.name} {serverContent.action.message.killedBySK} ${killedBySK > 2 ? additionalMsg : ""} `,
     });
     
+    // Reveal if the dead player was a werewolf (only if not already revealed)
+    if (attackedPlayer.role.team === "Werewolves" && !attackedPlayer.isRevealed) {
+      messagesHistory.unshift({
+        time: getCurrentTime(),
+        author: "",
+        msg: `{serverContent.action.message.werewolfReveal}${attackedPlayer.name}{serverContent.action.message.wasWerewolf}`,
+      });
+    }
+    
     shouldTriggerAnimation = true; // Trigger animation when SK kills
     
     // Check if the dead player was in love and kill their partner

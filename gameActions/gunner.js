@@ -25,8 +25,22 @@ exports.shootBullet = (playersList, selectedPlayerId, gunnerId, messagesHistory 
     return player;
   });
   
-  // Check if the dead player was in love and kill their partner
+  // Add shoot message first
   if (shotPlayer) {
+    messagesHistory.unshift({
+      time: getCurrentTime(),
+      author: "",
+      msg: `{serverContent.action.message.shootBullet} ${shotPlayer.name}.`,
+    });
+    // Reveal if the dead player was a werewolf (only if not already revealed)
+    if (shotPlayer.role.team === "Werewolves" && !shotPlayer.isRevealed) {
+      messagesHistory.unshift({
+        time: getCurrentTime(),
+        author: "",
+        msg: `{serverContent.action.message.werewolfReveal}${shotPlayer.name}{serverContent.action.message.wasWerewolf}`,
+      });
+    }
+    // Check if the dead player was in love and kill their partner
     const result = checkIfIsInLove(shotPlayer, playersList, messagesHistory);
     playersList = result.playersList;
     messagesHistory = result.messagesHistory;

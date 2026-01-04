@@ -45,6 +45,14 @@ exports.checkIfIsInLove = (deadPlayer, playersList, messagesHistory) => {
         author: "",
         msg: `💀💔 ${partner.name} {serverContent.action.message.dieWithLover} ${deadPlayer.name}!`,
       });
+      // Reveal if the partner (who died from love) was a werewolf (only if not already revealed)
+      if (partner.role.team === "Werewolves" && !partner.isRevealed) {
+        messagesHistory.unshift({
+          time: getCurrentTime(),
+          author: "",
+          msg: `{serverContent.action.message.werewolfReveal}${partner.name}{serverContent.action.message.wasWerewolf}`,
+        });
+      }
     }
   }
 

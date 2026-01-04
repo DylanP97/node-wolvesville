@@ -126,6 +126,14 @@ exports.handleVote = (playersList, messagesHistory, winningTeam) => {
         author: "",
         msg: `{serverContent.villageVote.outcome.basic} ${mostVotedAgainstPlayer.name}`,
       });
+      // Reveal if the dead player was a werewolf (only if not already revealed)
+      if (mostVotedAgainstPlayer.role.team === "Werewolves" && !mostVotedAgainstPlayer.isRevealed) {
+        messagesHistory.unshift({
+          time: getCurrentTime(),
+          author: "",
+          msg: `{serverContent.action.message.werewolfReveal}${mostVotedAgainstPlayer.name}{serverContent.action.message.wasWerewolf}`,
+        });
+      }
       // Check if the dead player was in love and kill their partner
       // Use the player object before death to check isInLove property
       const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory);
