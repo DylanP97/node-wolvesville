@@ -172,7 +172,7 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
                 null
             );
             setRooms(rooms, game, io, roomId);
-            io.to(roomId).emit("triggerAnimationForAll", "reviveMedium");
+            io.to(roomId).emit("triggerAnimationForAll", "mediumRevive");
             pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });
