@@ -24,7 +24,7 @@ exports.burnThemDown = (game, pyroId) => {
     let fireVictims = 0;
 
     game.messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(game.startTime),
         author: "",
         msg: `{serverContent.action.message.burnThemDown}`,
     });
@@ -37,12 +37,12 @@ exports.burnThemDown = (game, pyroId) => {
 
             if (wasProtected) {
                 game.messagesHistory.unshift({
-                    time: getCurrentTime(),
+                    time: getCurrentTime(game.startTime),
                     author: "",
                     msg: `{serverContent.action.message.wasProtected}`,
                 });
                 game.messagesHistory.unshift({
-                    time: getCurrentTime(),
+                    time: getCurrentTime(game.startTime),
                     author: "",
                     msg: `DEV -- ${ply.name} was protected by witch from pyro fire`,
                 });
@@ -50,12 +50,12 @@ exports.burnThemDown = (game, pyroId) => {
 
             else if (wasHealed) {
                 game.messagesHistory.unshift({
-                    time: getCurrentTime(),
+                    time: getCurrentTime(game.startTime),
                     author: "",
                     msg: `{serverContent.action.message.wasHealed}`,
                 });
                 game.messagesHistory.unshift({
-                    time: getCurrentTime(),
+                    time: getCurrentTime(game.startTime),
                     author: "",
                     msg: `DEV -- ${ply.name} was healed by doctor from pyro fire`,
                 });
@@ -64,14 +64,14 @@ exports.burnThemDown = (game, pyroId) => {
             else {
                 // Add burn message first
                 game.messagesHistory.unshift({
-                    time: getCurrentTime(),
+                    time: getCurrentTime(game.startTime),
                     author: "",
                     msg: `{serverContent.action.message.burnByFire} ${ply.name}`,
                 });
                 // Add werewolf reveal message immediately after if applicable (only if not already revealed)
                 if (ply.role.team === "Werewolves" && !ply.isRevealed) {
                     game.messagesHistory.unshift({
-                        time: getCurrentTime(),
+                        time: getCurrentTime(game.startTime),
                         author: "",
                         msg: `{serverContent.action.message.werewolfReveal}${ply.name}{serverContent.action.message.wasWerewolf}`,
                     });

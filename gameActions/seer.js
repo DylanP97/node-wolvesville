@@ -6,7 +6,7 @@ exports.revealPlayer = (selectedPlayerId, seerId, game) => {
     if (player.id === selectedPlayerId) {
       if (player.role.name === "Mayor") {
         game.messagesHistory.unshift({
-          time: getCurrentTime(),
+          time: getCurrentTime(game.startTime),
           author: "",
           msg: `{serverContent.action.message.mayorReveal} ${player.name}`
         });

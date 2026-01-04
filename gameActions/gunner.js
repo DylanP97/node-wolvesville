@@ -2,7 +2,7 @@ const { killSelectedPlayer } = require("./general");
 const { checkIfIsInLove } = require("./cupid");
 const { getCurrentTime } = require("../lib/utils");
 
-exports.shootBullet = (playersList, selectedPlayerId, gunnerId, messagesHistory = []) => {
+exports.shootBullet = (playersList, selectedPlayerId, gunnerId, messagesHistory = [], gameStartTime) => {
   // Get the player before they're killed to check isInLove
   const shotPlayer = playersList.find((p) => p.id === selectedPlayerId);
   
@@ -28,20 +28,20 @@ exports.shootBullet = (playersList, selectedPlayerId, gunnerId, messagesHistory 
   // Add shoot message first
   if (shotPlayer) {
     messagesHistory.unshift({
-      time: getCurrentTime(),
+      time: getCurrentTime(gameStartTime),
       author: "",
       msg: `{serverContent.action.message.shootBullet} ${shotPlayer.name}.`,
     });
     // Reveal if the dead player was a werewolf (only if not already revealed)
     if (shotPlayer.role.team === "Werewolves" && !shotPlayer.isRevealed) {
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `{serverContent.action.message.werewolfReveal}${shotPlayer.name}{serverContent.action.message.wasWerewolf}`,
       });
     }
     // Check if the dead player was in love and kill their partner
-    const result = checkIfIsInLove(shotPlayer, playersList, messagesHistory);
+    const result = checkIfIsInLove(shotPlayer, playersList, messagesHistory, gameStartTime);
     playersList = result.playersList;
     messagesHistory = result.messagesHistory;
   }

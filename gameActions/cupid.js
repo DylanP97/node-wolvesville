@@ -34,21 +34,21 @@ exports.linkLovers = (playersList, action) => {
   });
 };
 
-exports.checkIfIsInLove = (deadPlayer, playersList, messagesHistory) => {
+exports.checkIfIsInLove = (deadPlayer, playersList, messagesHistory, gameStartTime) => {
   if (deadPlayer.isInLove && deadPlayer.loverPartnerId) {
     const partner = playersList.find((ply) => ply.id === deadPlayer.loverPartnerId);
     
     if (partner && partner.isAlive) {
       playersList = killSelectedPlayer(partner.id, playersList);
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `💀💔 ${partner.name} {serverContent.action.message.dieWithLover} ${deadPlayer.name}!`,
       });
       // Reveal if the partner (who died from love) was a werewolf (only if not already revealed)
       if (partner.role.team === "Werewolves" && !partner.isRevealed) {
         messagesHistory.unshift({
-          time: getCurrentTime(),
+          time: getCurrentTime(gameStartTime),
           author: "",
           msg: `{serverContent.action.message.werewolfReveal}${partner.name}{serverContent.action.message.wasWerewolf}`,
         });

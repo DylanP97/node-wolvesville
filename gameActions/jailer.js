@@ -23,7 +23,7 @@ exports.arrestPlayer = (playersList, action) => {
   return playersList;
 };
 
-exports.executePrisoner = (playersList, messagesHistory = []) => {
+exports.executePrisoner = (playersList, messagesHistory = [], gameStartTime) => {
   let executedPlayer = null;
   
   // Get the player before they're executed to check isInLove
@@ -58,19 +58,19 @@ exports.executePrisoner = (playersList, messagesHistory = []) => {
   if (executedPlayer) {
     // Add execution message first
     messagesHistory.unshift({
-      time: getCurrentTime(),
+      time: getCurrentTime(gameStartTime),
       author: "",
       msg: `{serverContent.action.message.executePrisoner} ${executedPlayer.name}!`,
     });
     // Reveal if the executed player was a werewolf (only if not already revealed)
     if (executedPlayer.role.team === "Werewolves" && !executedPlayer.isRevealed) {
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `{serverContent.action.message.werewolfReveal}${executedPlayer.name}{serverContent.action.message.wasWerewolf}`,
       });
     }
-    const result = checkIfIsInLove(executedPlayer, playersList, messagesHistory);
+    const result = checkIfIsInLove(executedPlayer, playersList, messagesHistory, gameStartTime);
     playersList = result.playersList;
     messagesHistory = result.messagesHistory;
   }

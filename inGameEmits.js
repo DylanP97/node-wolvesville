@@ -25,7 +25,6 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
         }
     });
 
-
     socket.on("addVote", (action, roomId) => {
         let game = rooms.find((room) => room.id === roomId);
         if (game) {
@@ -76,7 +75,7 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
             );
             // Add message to wolves chat instead
             game.wolvesMessagesHistory.unshift({
-                time: getCurrentTime(),
+                time: getCurrentTime(game.startTime),
                 author: "",
                 msg: `{serverContent.action.message.wolfSeer} ${action.selectedPlayerName}!`,
             });
@@ -111,12 +110,15 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
             );
             setRooms(rooms, game, io, roomId);
             io.to(roomId).emit("triggerAnimationForAll", "seerForesee");
+            // io.to(roomId).emit("triggerCardAnimationForAll", {
+            //     title: "seerForesee",
+            //     cardsPlyIds: [action.selectedPlayerId]
+            // });
             pauseForAnimation(game, io, roomId, 3000, rooms);
         }
     });
 
     socket.on("shootBullet", (action, roomId) => {
-        console.log("shootBullet fn");
         let game = rooms.find((room) => room.id === roomId);
         if (game) {
             editGame(
@@ -133,7 +135,6 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
     });
 
     socket.on("pourGasoline", (action, roomId) => {
-        console.log("pourGasoline fn");
         let game = rooms.find((room) => room.id === roomId);
         if (game) {
             editGame(
@@ -147,7 +148,6 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
     });
 
     socket.on("burnThemDown", (action, roomId) => {
-        console.log("burnThemDown fn");
         let game = rooms.find((room) => room.id === roomId);
         if (game) {
             editGame(
@@ -306,26 +306,26 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
                         : "Jailer"
                     : username;
                 game.jailNightMessages.unshift({
-                    time: getCurrentTime(),
+                    time: getCurrentTime(game.startTime),
                     author: authorN,
                     msg: msg,
                 });
             } else if (isWolvesChat) {
                 game.wolvesMessagesHistory.unshift({
-                    time: getCurrentTime(),
+                    time: getCurrentTime(game.startTime),
                     author: username,
                     msg: msg,
                 });
             } else if (isMediumChat) {
                 // Medium chat - anonymous messages (author is empty or "Dead" for dead players)
                 game.mediumMessagesHistory.unshift({
-                    time: getCurrentTime(),
+                    time: getCurrentTime(game.startTime),
                     author: "", // Anonymous - medium and dead players don't show names
                     msg: msg,
                 });
             } else {
                 game.messagesHistory.unshift({
-                    time: getCurrentTime(),
+                    time: getCurrentTime(game.startTime),
                     author: username,
                     msg: msg,
                 });

@@ -46,7 +46,7 @@ exports.reinitializeProtection = (playersList) => {
 
 const { checkIfIsInLove } = require("./cupid");
 
-exports.usePoisonPotion = (playersList, selectedPlayerId, witchId, messagesHistory = []) => {
+exports.usePoisonPotion = (playersList, selectedPlayerId, witchId, messagesHistory = [], gameStartTime) => {
   const witch = playersList.find((p) => p.id === witchId);
   // Check if witch has nightmares - they can't use their ability
   if (witch && witch.willHaveNightmares) {
@@ -84,19 +84,19 @@ exports.usePoisonPotion = (playersList, selectedPlayerId, witchId, messagesHisto
     // Add poison message first
     const { getCurrentTime } = require("../lib/utils");
     messagesHistory.unshift({
-      time: getCurrentTime(),
+      time: getCurrentTime(gameStartTime),
       author: "",
       msg: `{serverContent.action.message.poisonPotion}${poisonedPlayer.name}`,
     });
     // Reveal if the poisoned player was a werewolf (only if not already revealed)
     if (poisonedPlayer.role.team === "Werewolves" && !poisonedPlayer.isRevealed) {
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `{serverContent.action.message.werewolfReveal}${poisonedPlayer.name}{serverContent.action.message.wasWerewolf}`,
       });
     }
-    const result = checkIfIsInLove(poisonedPlayer, playersList, messagesHistory);
+    const result = checkIfIsInLove(poisonedPlayer, playersList, messagesHistory, gameStartTime);
     playersList = result.playersList;
     messagesHistory = result.messagesHistory;
   }

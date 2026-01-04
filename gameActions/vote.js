@@ -98,11 +98,11 @@ exports.findPlayerWithMostWolvesVotes = (playersList) => {
   return countMaxVotes === 1 ? playerWithMostVotes : null;
 };
 
-exports.handleVote = (playersList, messagesHistory, winningTeam) => {
+exports.handleVote = (playersList, messagesHistory, winningTeam, gameStartTime) => {
   const mostVotedAgainstPlayer = this.findPlayerWithMostVotes(playersList);
   if (!mostVotedAgainstPlayer) {
     messagesHistory.unshift({
-      time: getCurrentTime(),
+      time: getCurrentTime(gameStartTime),
       author: "",
       msg: `{serverContent.villageVote.outcome.null}`,
     });
@@ -110,7 +110,7 @@ exports.handleVote = (playersList, messagesHistory, winningTeam) => {
     playersList = killSelectedPlayer(mostVotedAgainstPlayer.id, playersList);
     if (mostVotedAgainstPlayer.role.name === "Fool") {
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `{serverContent.villageVote.outcome.foolWins}`,
       });
@@ -122,21 +122,21 @@ exports.handleVote = (playersList, messagesHistory, winningTeam) => {
       };
     } else {
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `{serverContent.villageVote.outcome.basic} ${mostVotedAgainstPlayer.name}`,
       });
       // Reveal if the dead player was a werewolf (only if not already revealed)
       if (mostVotedAgainstPlayer.role.team === "Werewolves" && !mostVotedAgainstPlayer.isRevealed) {
         messagesHistory.unshift({
-          time: getCurrentTime(),
+          time: getCurrentTime(gameStartTime),
           author: "",
           msg: `{serverContent.action.message.werewolfReveal}${mostVotedAgainstPlayer.name}{serverContent.action.message.wasWerewolf}`,
         });
       }
       // Check if the dead player was in love and kill their partner
       // Use the player object before death to check isInLove property
-      const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory);
+      const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory, gameStartTime);
       playersList = result.playersList;
       messagesHistory = result.messagesHistory;
     }
@@ -151,7 +151,7 @@ exports.handleVote = (playersList, messagesHistory, winningTeam) => {
   };
 };
 
-exports.handleWolvesVote = (playersList, messagesHistory) => {
+exports.handleWolvesVote = (playersList, messagesHistory, gameStartTime) => {
 
 
   const wolves = playersList.filter((ply) => ply.role.team === "Werewolves");
@@ -163,12 +163,12 @@ exports.handleWolvesVote = (playersList, messagesHistory) => {
   if (!mostVotedAgainstPlayer) {
     if (wolves.length > 0) {
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `{serverContent.wolfVote.outcome.null}`,
       });
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `DEV -- unsuccessfulWolfVote`,
       });
@@ -179,64 +179,64 @@ exports.handleWolvesVote = (playersList, messagesHistory) => {
 
     if (!mostVotedAgainstPlayer.isAlive) {
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `{serverContent.wolfVote.outcome.null}`,
       });
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `DEV -- is not alive anymore, killed by somebody else before wolves vote`,
       });
     } else if (mostVotedAgainstPlayer.role.name === "Serial Killer" && wolves.length > 2) {
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `{serverContent.wolfVote.outcome.null}`,
       });
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `DEV -- unableToKillSK`,
       });
     } else if (wasHealed) {
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `{serverContent.action.message.wasHealed}`,
       });
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `DEV -- ${mostVotedAgainstPlayer.name} was healed by doctor from wolf attack`,
       });
     } else if (wasProtected) {
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `{serverContent.action.message.wasProtected}`,
       });
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `DEV -- ${mostVotedAgainstPlayer.name} was protected by witch from wolf attack`,
       });
     } else if (mostVotedAgainstPlayer.role.name === "Cursed") {
       playersList = bittenByWolves(playersList, mostVotedAgainstPlayer.id, wolves[0].wolvesKnowledge);
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `{serverContent.wolfVote.outcome.null}`,
       });
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `DEV -- cursedBittenByWolves`,
       });
     } else {
       playersList = killSelectedPlayer(mostVotedAgainstPlayer.id, playersList);
       messagesHistory.unshift({
-        time: getCurrentTime(),
+        time: getCurrentTime(gameStartTime),
         author: "",
         msg: `{serverContent.action.message.wolvesMurdered} ${mostVotedAgainstPlayer.name}!`,
       });
@@ -245,7 +245,7 @@ exports.handleWolvesVote = (playersList, messagesHistory) => {
 
       // Check if the dead player was in love and kill their partner
       // Use the player object before death to check isInLove property
-      const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory);
+      const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory, gameStartTime);
       playersList = result.playersList;
       messagesHistory = result.messagesHistory;
     }

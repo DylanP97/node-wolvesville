@@ -1,6 +1,6 @@
 const { getCurrentTime } = require("../lib/utils");
 
-exports.processReviveAtDayStart = (playersList, messagesHistory, registeredActions) => {
+exports.processReviveAtDayStart = (playersList, messagesHistory, registeredActions, gameStartTime) => {
   // Process revive actions at the start of the day
   // The revive action was registered during the night
   // Now we actually revive the player and add the message
@@ -37,7 +37,7 @@ exports.processReviveAtDayStart = (playersList, messagesHistory, registeredActio
         
         // Add revive message
         messagesHistory.unshift({
-          time: getCurrentTime(),
+          time: getCurrentTime(gameStartTime),
           author: "",
           msg: `${deadPlayer.name}{serverContent.action.message.revivedAtDayStart}`,
         });
