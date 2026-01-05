@@ -99,17 +99,23 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
     socket.on("revealPlayer", (action, roomId) => {
         let game = rooms.find((room) => room.id === roomId);
         if (game) {
+            const message = `
+          {serverContent.action.message.seer}
+          ${action.selectedPlayerName} - ${action.selectedPlayerRole}!
+          `;
             editGame(
                 game,
                 "reveal",
                 action,
-                `
-          {serverContent.action.message.seer}
-          ${action.selectedPlayerName} - ${action.selectedPlayerRole}!
-          `
+                message
             );
             setRooms(rooms, game, io, roomId);
-            io.to(roomId).emit("triggerAnimationForAll", "seerForesee");
+            // Use the message we passed to editGame (trimmed)
+            const animationMessage = message.trim() || null;
+            io.to(roomId).emit("triggerAnimationForAll", {
+                name: "seerForesee",
+                text: animationMessage
+            });
             // io.to(roomId).emit("triggerCardAnimationForAll", {
             //     title: "seerForesee",
             //     cardsPlyIds: [action.selectedPlayerId]
@@ -129,7 +135,17 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
             );
             setRooms(rooms, game, io, roomId);
             io.to(roomId).emit("triggerSoundForAll", "gunshot");
-            io.to(roomId).emit("triggerAnimationForAll", "angryShooter");
+            // Get the message stored in game object (before werewolf reveal message)
+            // Fallback to first message if not stored
+            const animationMessage = game.lastActionMessage || game.messagesHistory.find(m => m.msg?.includes("shootBullet"))?.msg || game.messagesHistory[0]?.msg || null;
+            // Clear the stored message after use
+            if (game.lastActionMessage) {
+              delete game.lastActionMessage;
+            }
+            io.to(roomId).emit("triggerAnimationForAll", {
+                name: "angryShooter",
+                text: animationMessage
+            });
             pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });
@@ -157,7 +173,12 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
                 null
             );
             setRooms(rooms, game, io, roomId);
-            io.to(roomId).emit("triggerAnimationForAll", "arsonistPlay");
+            // Find the burnThemDown message (not the individual burn messages)
+            const animationMessage = game.messagesHistory.find(m => m.msg?.includes("burnThemDown"))?.msg || game.messagesHistory[0]?.msg || null;
+            io.to(roomId).emit("triggerAnimationForAll", {
+                name: "arsonistPlay",
+                text: animationMessage
+            });
             pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });
@@ -172,7 +193,12 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
                 null
             );
             setRooms(rooms, game, io, roomId);
-            io.to(roomId).emit("triggerAnimationForAll", "mediumRevive");
+            // Use the message for medium revive animation (message doesn't exist yet at this point)
+            const animationMessage = "{serverContent.action.message.mediumAboutToRevive}";
+            io.to(roomId).emit("triggerAnimationForAll", {
+                name: "mediumRevive",
+                text: animationMessage
+            });
             pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });
@@ -211,23 +237,38 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
                 null
             );
             setRooms(rooms, game, io, roomId);
-            io.to(roomId).emit("triggerAnimationForAll", "witchPoison");
+            // Get the message stored in game object (before werewolf reveal message)
+            // Fallback to finding message with poisonPotion or first message
+            const animationMessage = game.lastActionMessage || game.messagesHistory.find(m => m.msg?.includes("poisonPotion"))?.msg || game.messagesHistory[0]?.msg || null;
+            // Clear the stored message after use
+            if (game.lastActionMessage) {
+              delete game.lastActionMessage;
+            }
+            io.to(roomId).emit("triggerAnimationForAll", {
+                name: "witchPoison",
+                text: animationMessage
+            });
             pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });
 
     socket.on("lootGrave", (action, roomId) => {
-        console.log("lootGrave fn");
         let game = rooms.find((room) => room.id === roomId);
         if (game) {
+            const message = `{serverContent.action.message.graveRobber} ${action.selectedPlayerName}!`;
             editGame(
                 game,
                 "loot",
                 action,
-                `DEV -- {serverContent.action.message.graveRobber} ${action.selectedPlayerName}! --`
+                message
             );
             setRooms(rooms, game, io, roomId);
-            io.to(roomId).emit("triggerAnimationForAll", "graveRobber");
+            // Use the message we passed to editGame
+            const animationMessage = message || null;
+            io.to(roomId).emit("triggerAnimationForAll", {
+                name: "graveRobber",
+                text: animationMessage
+            });
             pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });
@@ -248,17 +289,24 @@ const inGameEmits = (io, socket, rooms, connectedUsers) => {
     socket.on("assertDuty", (mayorName, roomId) => {
         let game = rooms.find((room) => room.id === roomId);
         if (game) {
+            const message = `
+          {serverContent.action.message.mayorReveal}   
+          ${mayorName}
+          {serverContent.action.message.mayorTripleVote}
+          `;
             editGame(
                 game,
                 "assertDuty",
                 null,
-                `
-          {serverContent.action.message.mayorReveal}   
-          ${mayorName}
-          `
+                message
             );
             setRooms(rooms, game, io, roomId);
-            io.to(roomId).emit("triggerAnimationForAll", "theMayor");
+            // Use the message we passed to editGame (trimmed)
+            const animationMessage = message.trim() || null;
+            io.to(roomId).emit("triggerAnimationForAll", {
+                name: "theMayor",
+                text: animationMessage
+            });
             pauseForAnimation(game, io, roomId, 6000, rooms);
         }
     });

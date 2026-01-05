@@ -8,7 +8,7 @@ exports.revealPlayer = (selectedPlayerId, seerId, game) => {
         game.messagesHistory.unshift({
           time: getCurrentTime(game.startTime),
           author: "",
-          msg: `{serverContent.action.message.mayorReveal} ${player.name}`
+          msg: `{serverContent.action.message.mayorReveal} ${player.name} {serverContent.action.message.mayorTripleVote}`
         });
         return {
           ...player,

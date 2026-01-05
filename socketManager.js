@@ -270,7 +270,6 @@ const socketManager = (io, rooms, connectedUsers) => {
 
       // update array list of rooms both in server and client
       rooms.push(newQuickRoom);
-      console.log(rooms)
       io.emit("updateRooms", rooms);
       // launch game
       startGame(newQuickRoom, newQuickRoom.id);
@@ -279,8 +278,6 @@ const socketManager = (io, rooms, connectedUsers) => {
     socket.on(
       "updateUserGameState",
       (username, newIsInRoom, newIsPlaying) => {
-        console.log("updateUserGameState fn");
-        console.log("parameters received:", username, newIsInRoom, newIsPlaying);
 
         let userIndex = connectedUsers.findIndex(
           (usr) => usr.username === username

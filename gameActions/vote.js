@@ -98,7 +98,7 @@ exports.findPlayerWithMostWolvesVotes = (playersList) => {
   return countMaxVotes === 1 ? playerWithMostVotes : null;
 };
 
-exports.handleVote = (playersList, messagesHistory, winningTeam, gameStartTime) => {
+exports.handleVote = (playersList, messagesHistory, winningTeam, gameStartTime, animationQueue = null) => {
   const mostVotedAgainstPlayer = this.findPlayerWithMostVotes(playersList);
   if (!mostVotedAgainstPlayer) {
     messagesHistory.unshift({
@@ -136,7 +136,7 @@ exports.handleVote = (playersList, messagesHistory, winningTeam, gameStartTime) 
       }
       // Check if the dead player was in love and kill their partner
       // Use the player object before death to check isInLove property
-      const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory, gameStartTime);
+      const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory, gameStartTime, animationQueue);
       playersList = result.playersList;
       messagesHistory = result.messagesHistory;
     }
@@ -151,7 +151,7 @@ exports.handleVote = (playersList, messagesHistory, winningTeam, gameStartTime) 
   };
 };
 
-exports.handleWolvesVote = (playersList, messagesHistory, gameStartTime) => {
+exports.handleWolvesVote = (playersList, messagesHistory, gameStartTime, animationQueue = null) => {
 
 
   const wolves = playersList.filter((ply) => ply.role.team === "Werewolves");
@@ -235,17 +235,29 @@ exports.handleWolvesVote = (playersList, messagesHistory, gameStartTime) => {
       });
     } else {
       playersList = killSelectedPlayer(mostVotedAgainstPlayer.id, playersList);
+      const wolvesKillMessage = `{serverContent.action.message.wolvesMurdered} ${mostVotedAgainstPlayer.name}!`;
       messagesHistory.unshift({
         time: getCurrentTime(gameStartTime),
         author: "",
-        msg: `{serverContent.action.message.wolvesMurdered} ${mostVotedAgainstPlayer.name}!`,
+        msg: wolvesKillMessage,
       });
 
       shouldTriggerWolvesAnimation = true; // Trigger animation when wolves kill
+      
+      // Queue wolves animation BEFORE checking for lover suicide
+      // This ensures wolves animation plays first, then lover suicide animation
+      // Store the message directly to avoid getting the werewolf reveal message instead
+      if (animationQueue) {
+        animationQueue.push({
+          type: "wolvesAte",
+          duration: 3000,
+          message: wolvesKillMessage,
+        });
+      }
 
       // Check if the dead player was in love and kill their partner
       // Use the player object before death to check isInLove property
-      const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory, gameStartTime);
+      const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory, gameStartTime, animationQueue);
       playersList = result.playersList;
       messagesHistory = result.messagesHistory;
     }

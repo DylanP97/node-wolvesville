@@ -23,7 +23,7 @@ exports.arrestPlayer = (playersList, action) => {
   return playersList;
 };
 
-exports.executePrisoner = (playersList, messagesHistory = [], gameStartTime) => {
+exports.executePrisoner = (playersList, messagesHistory = [], gameStartTime, animationQueue = null) => {
   let executedPlayer = null;
   
   // Get the player before they're executed to check isInLove
@@ -70,7 +70,7 @@ exports.executePrisoner = (playersList, messagesHistory = [], gameStartTime) => 
         msg: `{serverContent.action.message.werewolfReveal}${executedPlayer.name}{serverContent.action.message.wasWerewolf}`,
       });
     }
-    const result = checkIfIsInLove(executedPlayer, playersList, messagesHistory, gameStartTime);
+    const result = checkIfIsInLove(executedPlayer, playersList, messagesHistory, gameStartTime, animationQueue);
     playersList = result.playersList;
     messagesHistory = result.messagesHistory;
   }

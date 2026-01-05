@@ -34,16 +34,17 @@ exports.linkLovers = (playersList, action) => {
   });
 };
 
-exports.checkIfIsInLove = (deadPlayer, playersList, messagesHistory, gameStartTime) => {
+exports.checkIfIsInLove = (deadPlayer, playersList, messagesHistory, gameStartTime, animationQueue = null) => {
   if (deadPlayer.isInLove && deadPlayer.loverPartnerId) {
     const partner = playersList.find((ply) => ply.id === deadPlayer.loverPartnerId);
     
     if (partner && partner.isAlive) {
       playersList = killSelectedPlayer(partner.id, playersList);
+      const loverSuicideMessage = `💀💔 ${partner.name} {serverContent.action.message.dieWithLover} ${deadPlayer.name}!`;
       messagesHistory.unshift({
         time: getCurrentTime(gameStartTime),
         author: "",
-        msg: `💀💔 ${partner.name} {serverContent.action.message.dieWithLover} ${deadPlayer.name}!`,
+        msg: loverSuicideMessage,
       });
       // Reveal if the partner (who died from love) was a werewolf (only if not already revealed)
       if (partner.role.team === "Werewolves" && !partner.isRevealed) {
@@ -51,6 +52,15 @@ exports.checkIfIsInLove = (deadPlayer, playersList, messagesHistory, gameStartTi
           time: getCurrentTime(gameStartTime),
           author: "",
           msg: `{serverContent.action.message.werewolfReveal}${partner.name}{serverContent.action.message.wasWerewolf}`,
+        });
+      }
+      // Queue lover suicide animation
+      // Store the message directly to avoid getting the werewolf reveal message instead
+      if (animationQueue) {
+        animationQueue.push({
+          type: "loverSuicide",
+          duration: 4000,
+          message: loverSuicideMessage,
         });
       }
     }
