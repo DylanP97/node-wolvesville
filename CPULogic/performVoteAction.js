@@ -1,7 +1,6 @@
 // performVoteAction.js
 
-
-// If you still use this utility elsewhere, keep it; otherwise it's unused here
+const { handleAddVote } = require('../lib/gameActions');
 
 // =============================================================================
 // MAIN FUNCTION
@@ -18,8 +17,8 @@ exports.performVoteAction = (playersList, cpu, gameId, rooms, io) => {
     if (votablePlayers.length === 0) return;
 
     const revealedPlayers = votablePlayers.filter(p => p.isRevealed);
-    const teammates = getTeammates(playersList, cpu);
-    const votingState = getVotingState(votablePlayers);
+    const teammates = getTeammates(playersList, cpu);  // Remove this.
+    const votingState = getVotingState(votablePlayers);  // Remove this.
 
     // Count alive players and wolf power
     const alivePlayers = playersList.filter(p => p.isAlive);
@@ -38,24 +37,24 @@ exports.performVoteAction = (playersList, cpu, gameId, rooms, io) => {
     const revealedSerialKiller = revealedPlayers.find(p => p.role.name === "Serial Killer");
     if (revealedSerialKiller && Math.random() < 0.95) {
         voteTarget = revealedSerialKiller;
-        emitVote(cpu, voteTarget, gameId, rooms, io);
+        emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
         return;
     }
 
     const revealedArsonist = revealedPlayers.find(p => p.role.name === "Arsonist");
     if (revealedArsonist && Math.random() < 0.95) {
         voteTarget = revealedArsonist;
-        emitVote(cpu, voteTarget, gameId, rooms, io);
+        emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
         return;
     }
 
     // ----- PRIORITY 2: Revealed enemy wolves -----
     const revealedEnemyWolves = revealedPlayers.filter(p =>
-        p.role.team === "Werewolves" && !isTeammate(p, teammates)
+        p.role.team === "Werewolves" && !isTeammate(p, teammates)  // Remove this.
     );
     if (revealedEnemyWolves.length > 0 && Math.random() < 0.9) {
         voteTarget = revealedEnemyWolves[Math.floor(Math.random() * revealedEnemyWolves.length)];
-        emitVote(cpu, voteTarget, gameId, rooms, io);
+        emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
         return;
     }
 
@@ -66,7 +65,7 @@ exports.performVoteAction = (playersList, cpu, gameId, rooms, io) => {
         // Never bandwagon on revealed Fool (unless you're the Fool)
         if (leader.isRevealed && leader.role.name === "Fool" && cpuRole !== "Fool") {
             // refuse
-        } else if (!isTeammate(leader, teammates)) {
+        } else if (!isTeammate(leader, teammates)) {  // Remove this.
             let bandwagonChance = 0.6;
 
             if (cpuTeam === "Werewolves") {
@@ -80,7 +79,7 @@ exports.performVoteAction = (playersList, cpu, gameId, rooms, io) => {
 
             if (Math.random() < bandwagonChance) {
                 voteTarget = leader;
-                emitVote(cpu, voteTarget, gameId, rooms, io);
+                emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
                 return;
             }
         }
@@ -95,18 +94,18 @@ exports.performVoteAction = (playersList, cpu, gameId, rooms, io) => {
 
         if (powerfulRevealedVillagers.length > 0 && wolfPower >= 0.45 && Math.random() < 0.5) {
             voteTarget = powerfulRevealedVillagers[Math.floor(Math.random() * powerfulRevealedVillagers.length)];
-            emitVote(cpu, voteTarget, gameId, rooms, io);
+            emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
             return;
         }
     }
 
     // ----- PRIORITY 5: Team-specific strategies -----
     if (cpuTeam === "Werewolves") {
-        voteTarget = werewolfStrategy(votablePlayers, teammates, votingState, revealedFool, cpuRole);
+        voteTarget = werewolfStrategy(votablePlayers, teammates, votingState, revealedFool, cpuRole);  // Remove this.
     } else if (cpuTeam === "Village") {
-        voteTarget = villageStrategy(votablePlayers, votingState, revealedFool, cpuRole);
+        voteTarget = villageStrategy(votablePlayers, votingState, revealedFool, cpuRole);  // Remove this.
     } else {
-        voteTarget = soloStrategy(votablePlayers, votingState, cpuRole);
+        voteTarget = soloStrategy(votablePlayers, votingState, cpuRole);  // This one was already correct
     }
 
     // ----- FINAL SAFETY FILTER: Never vote revealed Fool (unless you are the Fool) -----
@@ -115,7 +114,7 @@ exports.performVoteAction = (playersList, cpu, gameId, rooms, io) => {
     }
 
     if (voteTarget) {
-        emitVote(cpu, voteTarget, gameId, rooms, io);
+        emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
         return;
     }
 
@@ -133,7 +132,7 @@ exports.performVoteAction = (playersList, cpu, gameId, rooms, io) => {
 // HELPER FUNCTIONS
 // =============================================================================
 
-exports.getTeammates = (playersList, cpu) => {
+function getTeammates(playersList, cpu) {  // Change to regular function
     if (cpu.role.team === "Werewolves") {
         return playersList.filter(p =>
             p.id !== cpu.id &&
@@ -152,11 +151,11 @@ exports.getTeammates = (playersList, cpu) => {
     return []; // solo roles
 }
 
-exports.isTeammate = (player, teammates) => {
+function isTeammate(player, teammates) {  // Change to regular function
     return teammates.some(t => t.id === player.id);
 }
 
-exports.getVotingState = (votablePlayers) => {
+function getVotingState(votablePlayers) {  // Change to regular function
     const playersWithVotes = votablePlayers
         .filter(p => p.voteAgainst > 0)
         .sort((a, b) => b.voteAgainst - a.voteAgainst);
@@ -174,8 +173,8 @@ exports.getVotingState = (votablePlayers) => {
 // TEAM STRATEGIES
 // =============================================================================
 
-exports.werewolfStrategy = (votablePlayers, teammates, votingState, revealedFool, cpuRole) => {
-    const nonTeammates = votablePlayers.filter(p => !isTeammate(p, teammates));
+function werewolfStrategy(votablePlayers, teammates, votingState, revealedFool, cpuRole) {  // Change to regular function
+    const nonTeammates = votablePlayers.filter(p => !isTeammate(p, teammates));  // Remove this.
     const safeTargets = nonTeammates.filter(p => !(p.isRevealed && p.role.name === "Fool"));
 
     // Prefer players with some votes to blend in
@@ -196,7 +195,7 @@ exports.werewolfStrategy = (votablePlayers, teammates, votingState, revealedFool
     return null;
 }
 
-exports.villageStrategy = (votablePlayers, votingState, revealedFool, cpuRole) => {
+function villageStrategy(votablePlayers, votingState, revealedFool, cpuRole) {  // Change to regular function
     if (revealedFool && Math.random() < 0.9) return null;
 
     if (votingState.leadingVotes >= 2 && Math.random() < 0.5) {
@@ -211,7 +210,7 @@ exports.villageStrategy = (votablePlayers, votingState, revealedFool, cpuRole) =
     return safe.length > 0 ? safe[Math.floor(Math.random() * safe.length)] : null;
 }
 
-exports.soloStrategy = (votablePlayers, votingState, cpuRole) => {
+function soloStrategy(votablePlayers, votingState, cpuRole) {  // Change to regular function
     if (cpuRole === "Fool") {
         // Fool acts erratically
         if (Math.random() < 0.4) {
@@ -232,7 +231,7 @@ exports.soloStrategy = (votablePlayers, votingState, cpuRole) => {
 // EMIT VOTE
 // =============================================================================
 
-exports.emitVote = (cpu, voteTarget, gameId, rooms, io) => {
+function emitVote(cpu, voteTarget, gameId, rooms, io) {  // Change to regular function
     const nbr = cpu.role.name === "Mayor" && cpu.isRevealed ? 3 : 1;
     handleAddVote(
         {

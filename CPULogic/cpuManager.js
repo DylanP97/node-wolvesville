@@ -1,7 +1,7 @@
 
-const performDayAction = require('./performDayAction');
-const performVoteAction = require('./performVoteAction');
-const performNightAction = require('./performNightAction');
+const {performDayAction} = require('./performDayAction');
+const {performVoteAction} = require('./performVoteAction');
+const {performNightAction} = require('./performNightAction');
 
 const processCPUMoves = (game, rooms, io) => {
   if (!game || game.isPaused || game.winningTeam || game.hasEnded) return;

@@ -116,7 +116,7 @@ const socketManager = (io, rooms, connectedUsers) => {
         }
       } else {
         console.log("and the winner is...");
-        console.log(game.winningTeam);
+        console.log(game.winningTeam.name);
         game.isPaused = true;
       }
 

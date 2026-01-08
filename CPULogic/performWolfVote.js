@@ -28,7 +28,7 @@ exports.performWolfVote = (playersList, cpu, gameId, rooms, io) => {
     );
 
     // Current wolf voting state
-    const wolfVotingState = getWolfVotingState(killableTargets);
+    const wolfVotingState = this.getWolfVotingState(killableTargets);
 
     // Vote weight for this wolf
     const voteWeight = cpuRole === "Alpha Werewolf" ? 2 : 1;
@@ -47,19 +47,19 @@ exports.performWolfVote = (playersList, cpu, gameId, rooms, io) => {
         // Prioritize: Mayor > Seer > Gunner > Jailer
         const mayor = revealedPowerRoles.find(p => p.role.name === "Mayor");
         if (mayor) {
-            emitWolfVote(cpu, mayor, voteWeight, gameId, rooms, io);
+            this.emitWolfVote(cpu, mayor, voteWeight, gameId, rooms, io);
             return;
         }
 
         const seer = revealedPowerRoles.find(p => p.role.name === "Seer");
         if (seer) {
-            emitWolfVote(cpu, seer, voteWeight, gameId, rooms, io);
+            this.emitWolfVote(cpu, seer, voteWeight, gameId, rooms, io);
             return;
         }
 
         // Otherwise random power role
         killTarget = revealedPowerRoles[Math.floor(Math.random() * revealedPowerRoles.length)];
-        emitWolfVote(cpu, killTarget, voteWeight, gameId, rooms, io);
+        this.emitWolfVote(cpu, killTarget, voteWeight, gameId, rooms, io);
         return;
     }
 
@@ -68,7 +68,7 @@ exports.performWolfVote = (playersList, cpu, gameId, rooms, io) => {
     if (wolfVotingState.leadingTarget && wolfVotingState.leadingVotes >= 2) {
         // 75% chance to coordinate with pack
         if (Math.random() < 0.75) {
-            emitWolfVote(cpu, wolfVotingState.leadingTarget, voteWeight, gameId, rooms, io);
+            this.emitWolfVote(cpu, wolfVotingState.leadingTarget, voteWeight, gameId, rooms, io);
             return;
         }
     }
@@ -79,7 +79,7 @@ exports.performWolfVote = (playersList, cpu, gameId, rooms, io) => {
         p.role.name === "Doctor"
     );
     if (revealedDoctor && Math.random() < 0.65) {
-        emitWolfVote(cpu, revealedDoctor, voteWeight, gameId, rooms, io);
+        this.emitWolfVote(cpu, revealedDoctor, voteWeight, gameId, rooms, io);
         return;
     }
 
@@ -87,7 +87,7 @@ exports.performWolfVote = (playersList, cpu, gameId, rooms, io) => {
     const revealedVillagers = revealedTargets.filter(p => p.role.team === "Village");
     if (revealedVillagers.length > 0 && Math.random() < 0.55) {
         killTarget = revealedVillagers[Math.floor(Math.random() * revealedVillagers.length)];
-        emitWolfVote(cpu, killTarget, voteWeight, gameId, rooms, io);
+        this.emitWolfVote(cpu, killTarget, voteWeight, gameId, rooms, io);
         return;
     }
 
@@ -107,7 +107,7 @@ exports.performWolfVote = (playersList, cpu, gameId, rooms, io) => {
         const soloKillChance = isLateGame ? 0.7 : 0.3;
         if (Math.random() < soloKillChance) {
             killTarget = revealedSoloRoles[Math.floor(Math.random() * revealedSoloRoles.length)];
-            emitWolfVote(cpu, killTarget, voteWeight, gameId, rooms, io);
+            this.emitWolfVote(cpu, killTarget, voteWeight, gameId, rooms, io);
             return;
         }
     }
@@ -115,7 +115,7 @@ exports.performWolfVote = (playersList, cpu, gameId, rooms, io) => {
     // PRIORITY 6: Follow another wolf's vote if one exists (coordination)
     if (wolfVotingState.playersWithVotes.length > 0 && Math.random() < 0.5) {
         killTarget = wolfVotingState.playersWithVotes[0];
-        emitWolfVote(cpu, killTarget, voteWeight, gameId, rooms, io);
+        this.emitWolfVote(cpu, killTarget, voteWeight, gameId, rooms, io);
         return;
     }
 
@@ -124,12 +124,12 @@ exports.performWolfVote = (playersList, cpu, gameId, rooms, io) => {
 
     if (unrevealedTargets.length > 0) {
         // Check for suspicious voting patterns (potential power roles)
-        const suspiciousPlayers = identifySuspiciousVillagers(unrevealedTargets, playersList);
+        const suspiciousPlayers = this.identifySuspiciousVillagers(unrevealedTargets, playersList);
 
         if (suspiciousPlayers.length > 0 && Math.random() < 0.6) {
             // Target suspicious players (might be Seer, Doctor, etc.)
             killTarget = suspiciousPlayers[Math.floor(Math.random() * suspiciousPlayers.length)];
-            emitWolfVote(cpu, killTarget, voteWeight, gameId, rooms, io);
+            this.emitWolfVote(cpu, killTarget, voteWeight, gameId, rooms, io);
             return;
         }
 
@@ -140,7 +140,7 @@ exports.performWolfVote = (playersList, cpu, gameId, rooms, io) => {
             const quietTargets = unrevealedTargets.filter(p => p.voteAgainst === 0);
             if (quietTargets.length > 0) {
                 killTarget = quietTargets[Math.floor(Math.random() * quietTargets.length)];
-                emitWolfVote(cpu, killTarget, voteWeight, gameId, rooms, io);
+                this.emitWolfVote(cpu, killTarget, voteWeight, gameId, rooms, io);
                 return;
             }
         }
@@ -149,7 +149,7 @@ exports.performWolfVote = (playersList, cpu, gameId, rooms, io) => {
     // FALLBACK: Random target (should rarely reach here)
     if (killableTargets.length > 0) {
         killTarget = killableTargets[Math.floor(Math.random() * killableTargets.length)];
-        emitWolfVote(cpu, killTarget, voteWeight, gameId, rooms, io);
+        this.emitWolfVote(cpu, killTarget, voteWeight, gameId, rooms, io);
     }
 }
 
