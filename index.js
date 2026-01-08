@@ -15,8 +15,8 @@ mongoose.set("strictQuery", false);
 
 mongoose
   .connect(process.env.MONGODB_URL)
-  .then(() => console.log("Connexion à MongoDB réussie !"))
-  .catch(() => console.log("Connexion à MongoDB échouée !"));
+  .then(() => console.log("Success to connect to MongoDB!"))
+  .catch(() => console.log("Failed to connect to MongoDB!"));
 
 const db = mongoose.connection;
 

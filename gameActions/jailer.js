@@ -1,12 +1,10 @@
 /* action by the jailer role */
-const { killSelectedPlayer } = require("./general");
 const { checkIfIsInLove } = require("./cupid");
 const { getCurrentTime } = require("../lib/utils");
 
 exports.arrestPlayer = (playersList, action) => {
   playersList = playersList.map((ply) => {
     if (ply.id === action.selectedPlayerId) {
-      console.log("player ", ply.name, " has been arrested");
       return {
         ...ply,
         isUnderArrest: true,

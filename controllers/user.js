@@ -69,7 +69,6 @@ exports.signup = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  console.log("Login request received");
   const { email, password } = req.body;
 
   try {
@@ -102,7 +101,6 @@ exports.login = async (req, res) => {
 };
 
 exports.guestLogin = async (req, res) => {
-  // console.log("Guest login request received");
   try {
     const user = await GuestUserModel.create({
       username: shortName(),
@@ -157,7 +155,6 @@ exports.checkAuth = async (req, res) => {
       return res.status(401).json({ message: "No access token provided" });
     }
     const user = await verifyAccessToken(accessToken);
-    // console.log("User:", user);
     if (!user) {
       // clear client cookie if any...
       res.clearCookie("accessToken");
@@ -233,7 +230,6 @@ exports.editProfile = async (req, res) => {
     });
 
     if (!updatedUser) {
-      console.log("User not found");
       return res.status(404).json({ message: "User not found" });
     }
 

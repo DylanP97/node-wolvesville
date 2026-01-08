@@ -16,6 +16,7 @@ const {
 const { getRolesDataForQuickGame } = require("./controllers/roles");
 const cleanupOldRooms = require("./lib/cleanupOldRooms");
 const inGameEmits = require("./inGameEmits");
+const { processCPUMoves } = require('./CPULogic/cpuManager');
 
 const socketManager = (io, rooms, connectedUsers) => {
 
@@ -28,10 +29,6 @@ const socketManager = (io, rooms, connectedUsers) => {
   cleanupOldRooms(io, rooms, connectedUsers);
 
   io.on("connection", (socket) => {
-
-    // console.log("connectedUsers socket connection: ", connectedUsers.map((usr) => usr.username));
-    // console.log("rooms socket connection: ", rooms.map((room) => room.id + " " + room.name))
-
     console.log("New client connected:", socket.id);
     const token = socket.handshake.query.token;
     console.log("is it some user trying to reconnect with token ? ", (connectedUsers.some((usr) => usr.token === token)));
@@ -43,7 +40,6 @@ const socketManager = (io, rooms, connectedUsers) => {
 
         // Update socket ID
         connectedUsers[userIndex] = { ...user, socketId: socket.id };
-
         console.log(`User ${user.username} reconnected`);
 
         // Rejoin room if they were in one
@@ -73,7 +69,6 @@ const socketManager = (io, rooms, connectedUsers) => {
     }
 
     socket.on("sendNewConnectedUser", (user) => {
-      // console.log((user.username || user.name) + " is connected " + socket.id);
       const existingUserIndex = connectedUsers.findIndex(
         (usr) => usr.username === user.username
       );
@@ -99,6 +94,9 @@ const socketManager = (io, rooms, connectedUsers) => {
 
       if (game.winningTeam === null) {
         game.timeCounter -= 1000;
+
+        // ✅ Process CPU moves on the server
+        processCPUMoves(game, rooms, io);
 
         if (game.timeCounter === 0) {
           if (game.timeOfTheDay === "nighttime")
@@ -285,8 +283,6 @@ const socketManager = (io, rooms, connectedUsers) => {
 
         const prevUserState = connectedUsers[userIndex];
 
-        // console.log("previous user state:", prevUserState.isInRoom, prevUserState.isPlaying);
-
         if (userIndex !== -1) {
           connectedUsers[userIndex] = {
             ...connectedUsers[userIndex],
@@ -308,7 +304,6 @@ const socketManager = (io, rooms, connectedUsers) => {
 
               // Check if there are any real users left
               const hasOtherRealUsers = room.usersInTheRoom.length > 0;
-              console.log("does the room have real users?", hasOtherRealUsers);
 
               if (!hasOtherRealUsers) {
                 // Delete the room entirely if no real users are left
@@ -344,8 +339,6 @@ const socketManager = (io, rooms, connectedUsers) => {
     );
 
     socket.on("deleteRoom", (roomId) => {
-      console.log(connectedUsers.map((usr) => usr.username + " " + usr.isInRoom + " " + usr.isPlaying));
-
       // ✅ Modifié : suppression en place au lieu de réassignation
       const roomIndex = rooms.findIndex((room) => room.id === roomId);
       if (roomIndex !== -1) {
@@ -361,21 +354,12 @@ const socketManager = (io, rooms, connectedUsers) => {
         }
       });
 
-      console.log("connectedUsers after deleteRoom: ",
-        connectedUsers.map((usr) => ({
-          username: usr.username,
-          isInRoom: usr.isInRoom,
-          isPlaying: usr.isPlaying
-        }))
-      );
-
       io.emit("updateUsers", connectedUsers);
     });
 
     socket.on("disconnect", () => {
       try {
         console.log(`User disconnected: ${socket.id}`);
-
         const user = connectedUsers.find((usr) => usr.socketId === socket.id);
 
         if (!user) return;
@@ -426,8 +410,6 @@ const socketManager = (io, rooms, connectedUsers) => {
     });
 
     socket.on("logout", () => {
-      console.log("logout fn");
-
       const user = connectedUsers.find((usr) => usr.socketId === socket.id);
 
       if (!user) return;
@@ -448,7 +430,6 @@ const socketManager = (io, rooms, connectedUsers) => {
         const hasOtherRealUsers = room.usersInTheRoom.some(
           (u) => u.username !== user.username
         );
-        console.log("does the room have real users?", hasOtherRealUsers);
 
         if (!hasOtherRealUsers) {
           // Delete the room entirely if no real users are left
@@ -470,13 +451,9 @@ const socketManager = (io, rooms, connectedUsers) => {
       }
 
       io.emit("updateUsers", connectedUsers);
-
-      console.log("connectedUsers after logout: ", connectedUsers.map((usr) => usr.username));
-      console.log("rooms after logout: ", rooms.map((room) => room.id + " " + room.name))
     });
 
     socket.on("endGame", (roomId) => {
-      console.log("endGame fn");
       let game = rooms.find((room) => room.id === roomId);
       if (game) {
         game.hasEnded = Date.now();

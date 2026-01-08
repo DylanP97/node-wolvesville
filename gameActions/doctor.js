@@ -3,7 +3,6 @@ exports.heal = (selectedPlayerId, playersList, doctorId) => {
   const doctor = playersList.find((p) => p.id === doctorId);
   // Check if doctor has nightmares - they can't use their ability
   if (doctor && doctor.willHaveNightmares) {
-    // console.log("doctor can't do action because of nightmares")
     return playersList;
   }
 
