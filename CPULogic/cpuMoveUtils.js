@@ -1,15 +1,15 @@
 // cpuMoveUtils.js
 
-function getPlayerWithId(playersList, id) {
+exports.getPlayerWithId = (playersList, id) => {
     return playersList.find((ply) => ply.id === id);
 }
 
-function getFool(playersList) {
+exports.getFool = (playersList) => {
     const fool = playersList.find((ply) => ply.role.name === 'Fool')
     return fool;
 }
 
-function getNbrOfPlayersMarkedWithGasoline(playersList) {
+exports.getNbrOfPlayersMarkedWithGasoline = (playersList) => {
     let nbr = 0
     playersList.forEach((ply) => {
         if (ply.isMarkedWithGasoline && ply.isAlive) {
@@ -19,12 +19,12 @@ function getNbrOfPlayersMarkedWithGasoline(playersList) {
     return nbr
 }
 
-function getRandomAlivePlayer(
+exports.getRandomAlivePlayer = (
     playersList,
     excludeWerewolves = false,
     excludeRevealed = false,
     excludePlayerId = null, // New parameter to exclude a specific player
-) {
+) => {
     let potentialPlayers = playersList.filter(
         (player) =>
             player.isAlive &&
@@ -41,7 +41,7 @@ function getRandomAlivePlayer(
     return randomPlayer;
 }
 
-function getRandomDeadPlayer(playersList) {
+exports.getRandomDeadPlayer = (playersList) => {
     let deadPlayers = playersList.filter((player) => !player.isAlive);
     if (deadPlayers.length === 0) {
         return null;
@@ -51,5 +51,3 @@ function getRandomDeadPlayer(playersList) {
     return randomDeadPlayer;
 }
 
-
-export { getPlayerWithId, getFool, getNbrOfPlayersMarkedWithGasoline, getRandomAlivePlayer, getRandomDeadPlayer };
