@@ -16,7 +16,7 @@ const processCPUMoves = (game, rooms, io) => {
         } else if (game.timeOfTheDay === "daytime") {
           performDayAction(game.playersList, player, game.id, rooms, io);
         } else if (game.timeOfTheDay === "votetime") {
-          performVoteAction(game.playersList, player, game, rooms, io);
+          performVoteAction(game.playersList, player, game.id, rooms, io);
         }
       }
     }

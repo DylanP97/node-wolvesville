@@ -4,11 +4,12 @@ const { killSelectedPlayer } = require("./general");
 const { checkIfIsInLove } = require("./cupid");
 
 exports.voteAgainst = (selectedPlayerId, playersList, nbr, playerId, selectedPlayerName) => {
+  console.log("voteAgainst called");
   playersList = playersList.map((player) => {
     if (player.id === selectedPlayerId) {
       return {
         ...player,
-        voteAgainst: player.voteAgainst + nbr,
+        voteAgainst: (player.voteAgainst || 0) + nbr,
       };
     }
     if (player.id === playerId) {
@@ -243,7 +244,7 @@ exports.handleWolvesVote = (playersList, messagesHistory, gameStartTime, animati
       });
 
       shouldTriggerWolvesAnimation = true; // Trigger animation when wolves kill
-      
+
       // Queue wolves animation BEFORE checking for lover suicide
       // This ensures wolves animation plays first, then lover suicide animation
       // Store the message directly to avoid getting the werewolf reveal message instead

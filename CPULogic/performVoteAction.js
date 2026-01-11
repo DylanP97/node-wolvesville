@@ -37,14 +37,14 @@ exports.performVoteAction = (playersList, cpu, gameId, rooms, io) => {
     const revealedSerialKiller = revealedPlayers.find(p => p.role.name === "Serial Killer");
     if (revealedSerialKiller && Math.random() < 0.95) {
         voteTarget = revealedSerialKiller;
-        emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
+        this.emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
         return;
     }
 
     const revealedArsonist = revealedPlayers.find(p => p.role.name === "Arsonist");
     if (revealedArsonist && Math.random() < 0.95) {
         voteTarget = revealedArsonist;
-        emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
+        this.emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
         return;
     }
 
@@ -54,7 +54,7 @@ exports.performVoteAction = (playersList, cpu, gameId, rooms, io) => {
     );
     if (revealedEnemyWolves.length > 0 && Math.random() < 0.9) {
         voteTarget = revealedEnemyWolves[Math.floor(Math.random() * revealedEnemyWolves.length)];
-        emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
+        this.emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
         return;
     }
 
@@ -79,7 +79,7 @@ exports.performVoteAction = (playersList, cpu, gameId, rooms, io) => {
 
             if (Math.random() < bandwagonChance) {
                 voteTarget = leader;
-                emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
+                this.emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
                 return;
             }
         }
@@ -94,7 +94,7 @@ exports.performVoteAction = (playersList, cpu, gameId, rooms, io) => {
 
         if (powerfulRevealedVillagers.length > 0 && wolfPower >= 0.45 && Math.random() < 0.5) {
             voteTarget = powerfulRevealedVillagers[Math.floor(Math.random() * powerfulRevealedVillagers.length)];
-            emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
+            this.emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
             return;
         }
     }
@@ -114,7 +114,7 @@ exports.performVoteAction = (playersList, cpu, gameId, rooms, io) => {
     }
 
     if (voteTarget) {
-        emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
+        this.emitVote(cpu, voteTarget, gameId, rooms, io);  // Remove this.
         return;
     }
 
@@ -231,7 +231,7 @@ function soloStrategy(votablePlayers, votingState, cpuRole) {  // Change to regu
 // EMIT VOTE
 // =============================================================================
 
-function emitVote(cpu, voteTarget, gameId, rooms, io) {  // Change to regular function
+exports.emitVote = (cpu, voteTarget, gameId, rooms, io) => {  // Change to regular function
     const nbr = cpu.role.name === "Captain" && cpu.isRevealed ? 3 : 1;
     handleAddVote(
         {
