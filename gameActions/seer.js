@@ -4,11 +4,11 @@ const { getCurrentTime } = require("../lib/utils");
 exports.revealPlayer = (selectedPlayerId, seerId, game) => {
   game.playersList = game.playersList.map((player) => {
     if (player.id === selectedPlayerId) {
-      if (player.role.name === "Mayor") {
+      if (player.role.name === "Captain") {
         game.messagesHistory.unshift({
           time: getCurrentTime(game.startTime),
           author: "",
-          msg: `{serverContent.action.message.mayorReveal} ${player.name} {serverContent.action.message.mayorTripleVote}`
+          msg: `{serverContent.action.message.captainReveal} ${player.name} {serverContent.action.message.captainTripleVote}`
         });
         return {
           ...player,

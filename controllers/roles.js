@@ -43,7 +43,7 @@ exports.getRolesDataForQuickGame = async () => {
     "Witch",//
     "Gunner",//
     "Seer",//
-    "Mayor",//
+    "Captain",//
     "Cupid",//
     "Serial Killer",//
     "Fool",//

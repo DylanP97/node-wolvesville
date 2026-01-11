@@ -9,7 +9,7 @@ const {
 
 exports.performDayAction = (playersList, cpu, gameId, rooms, io) => {
     switch (cpu.role.name) {
-        case "Mayor":
+        case "Captain":
             if (Math.random() < 0.3 && cpu.role.canPerform1.nbrLeftToPerform > 0) {
                 handleAssertDuty(cpu.name, gameId, rooms, io);
             }

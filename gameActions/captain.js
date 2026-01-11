@@ -1,6 +1,6 @@
 exports.assertDuty = (playersList) => {
   playersList = playersList.map((ply) => {
-    if (ply.role.name === "Mayor") {
+    if (ply.role.name === "Captain") {
       return {
         ...ply,
         isRevealed: true,

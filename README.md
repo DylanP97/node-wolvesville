@@ -180,7 +180,7 @@ The server implements complete logic for these roles:
 - 🔫 **Gunner** - Can shoot during the day (limited bullets)
 - 👮‍♂️ **Jailer** - Arrests and can execute prisoners
 - 🏹 **Cupid** - Creates lovers at start of game
-- 👔 **Mayor** - Vote counts double (revealed publicly)
+- 👔 **Captain** - Vote counts double (revealed publicly)
 - 👨 **Villager** - No special ability
 - 😈 **Cursed Villager** - Turns into wolf if targeted
 - 🪦 **Grave Robber** - Steals role from dead player

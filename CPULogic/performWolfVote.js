@@ -44,10 +44,10 @@ exports.performWolfVote = (playersList, cpu, gameId, rooms, io) => {
     );
 
     if (revealedPowerRoles.length > 0 && Math.random() < 0.8) {
-        // Prioritize: Mayor > Seer > Gunner > Jailer
-        const mayor = revealedPowerRoles.find(p => p.role.name === "Mayor");
-        if (mayor) {
-            this.emitWolfVote(cpu, mayor, voteWeight, gameId, rooms, io);
+        // Prioritize: Captain > Seer > Gunner > Jailer
+        const captain = revealedPowerRoles.find(p => p.role.name === "Captain");
+        if (captain) {
+            this.emitWolfVote(cpu, captain, voteWeight, gameId, rooms, io);
             return;
         }
 

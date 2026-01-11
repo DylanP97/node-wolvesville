@@ -81,8 +81,8 @@ const inGameEmits = (io, socket, rooms) => {
         handlePutNightmare(action, roomId, rooms, io);
     });
 
-    socket.on("assertDuty", (mayorName, roomId) => {
-        handleAssertDuty(mayorName, roomId, rooms, io);
+    socket.on("assertDuty", (captainName, roomId) => {
+        handleAssertDuty(captainName, roomId, rooms, io);
     });
 
     socket.on("registerAction", (actionObject, roomId) => {

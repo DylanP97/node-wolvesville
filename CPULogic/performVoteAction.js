@@ -89,7 +89,7 @@ exports.performVoteAction = (playersList, cpu, gameId, rooms, io) => {
     if (cpuTeam === "Werewolves") {
         const powerfulRevealedVillagers = revealedPlayers.filter(p =>
             p.role.team === "Village" &&
-            ["Seer", "Gunner", "Jailer", "Doctor", "Mayor"].includes(p.role.name)
+            ["Seer", "Gunner", "Jailer", "Doctor", "Captain"].includes(p.role.name)
         );
 
         if (powerfulRevealedVillagers.length > 0 && wolfPower >= 0.45 && Math.random() < 0.5) {
@@ -232,7 +232,7 @@ function soloStrategy(votablePlayers, votingState, cpuRole) {  // Change to regu
 // =============================================================================
 
 function emitVote(cpu, voteTarget, gameId, rooms, io) {  // Change to regular function
-    const nbr = cpu.role.name === "Mayor" && cpu.isRevealed ? 3 : 1;
+    const nbr = cpu.role.name === "Captain" && cpu.isRevealed ? 3 : 1;
     handleAddVote(
         {
             type: "addVote",
