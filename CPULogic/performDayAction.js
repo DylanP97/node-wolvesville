@@ -33,7 +33,7 @@ exports.performDayAction = (playersList, cpu, gameId, rooms, io) => {
                     seerId: cpu.id,
                     selectedPlayerId: playerToReveal.id,
                     selectedPlayerName: playerToReveal.name,
-                    selectedPlayerRole: playerToReveal.role.name, // Remove i18n - handle on client
+                    selectedPlayerRole: playerToReveal.role.nameFR, // Remove i18n - handle on client
                 }, gameId, rooms, io);
             }
             break;
