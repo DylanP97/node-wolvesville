@@ -28,6 +28,262 @@ const socketManager = (io, rooms, connectedUsers) => {
   // Also cleanup on initial load
   cleanupOldRooms(io, rooms, connectedUsers);
 
+  // ============================================================================
+  // MATCHMAKING QUEUE SYSTEM
+  // ============================================================================
+  let matchmakingQueue = {
+    players: [],           // [{username, socketId, avatar, joinedAt}]
+    timer: null,          // Countdown timer reference
+    secondsRemaining: 20,
+    isCountdownActive: false
+  };
+
+  // Start matchmaking countdown
+  const startMatchmakingCountdown = () => {
+    if (matchmakingQueue.isCountdownActive) return;
+
+    matchmakingQueue.isCountdownActive = true;
+    matchmakingQueue.secondsRemaining = 20;
+
+    matchmakingQueue.timer = setInterval(() => {
+      matchmakingQueue.secondsRemaining--;
+
+      // Broadcast updated countdown to all players in queue
+      broadcastMatchmakingStatus();
+
+      // Start game when countdown reaches 0
+      if (matchmakingQueue.secondsRemaining <= 0) {
+        startMatchmakingGame();
+      }
+    }, 1000);
+  };
+
+  // Stop matchmaking countdown
+  const stopMatchmakingCountdown = () => {
+    if (matchmakingQueue.timer) {
+      clearInterval(matchmakingQueue.timer);
+      matchmakingQueue.timer = null;
+    }
+    matchmakingQueue.isCountdownActive = false;
+    matchmakingQueue.secondsRemaining = 20;
+  };
+
+  // Broadcast matchmaking status to all players in queue
+  const broadcastMatchmakingStatus = () => {
+    const status = {
+      playerCount: matchmakingQueue.players.length,
+      players: matchmakingQueue.players,
+      secondsRemaining: matchmakingQueue.secondsRemaining,
+      isCountdownActive: matchmakingQueue.isCountdownActive
+    };
+
+    // Emit to all players in matchmaking
+    matchmakingQueue.players.forEach(player => {
+      io.to(player.socketId).emit("matchmakingUpdate", status);
+    });
+  };
+
+  // Start game from matchmaking queue
+  const startMatchmakingGame = async () => {
+    if (matchmakingQueue.players.length < 2) {
+      console.log("Not enough players to start matchmaking game");
+      stopMatchmakingCountdown();
+      return;
+    }
+
+    stopMatchmakingCountdown();
+
+    // Get roles data
+    const rolesData = await getRolesDataForQuickGame();
+
+    // Calculate CPU count
+    const realPlayerCount = matchmakingQueue.players.length;
+    const totalPlayers = 16;
+    const cpuCount = totalPlayers - realPlayerCount;
+
+    // Create game room
+    const newMatchmakingRoom = {
+      id: Date.now(),
+      name: `Matchmaking Game ${Date.now()}`,
+      createdBy: matchmakingQueue.players[0].username,
+      nbrOfPlayers: totalPlayers,
+      nbrUserPlayers: realPlayerCount,
+      nbrCPUPlayers: cpuCount,
+      selectedRoles: rolesData,
+      usersInTheRoom: matchmakingQueue.players.map(p => ({
+        username: p.username,
+        socketId: p.socketId,
+        avatar: p.avatar,
+        preferredRole: null
+      })),
+      isLaunched: false,
+      isQuickGame: false,
+      isMatchmaking: true,
+    };
+
+    // Update all players in connectedUsers
+    matchmakingQueue.players.forEach(player => {
+      const userIndex = connectedUsers.findIndex(u => u.username === player.username);
+      if (userIndex !== -1) {
+        connectedUsers[userIndex] = {
+          ...connectedUsers[userIndex],
+          isInRoom: newMatchmakingRoom.id,
+          isPlaying: true,
+        };
+        console.log(`✅ Updated ${player.username}: isInRoom=${newMatchmakingRoom.id}, isPlaying=true`);
+      } else {
+        console.log(`❌ User ${player.username} not found in connectedUsers!`);
+      }
+      // Join socket room
+      const playerSocket = io.sockets.sockets.get(player.socketId);
+      if (playerSocket) {
+        playerSocket.join(newMatchmakingRoom.id);
+        console.log(`✅ ${player.username} joined socket room ${newMatchmakingRoom.id}`);
+      } else {
+        console.log(`❌ Socket not found for ${player.username} (socketId: ${player.socketId})`);
+      }
+    });
+
+    // Notify players that match was found
+    io.to(newMatchmakingRoom.id).emit("matchFound", { roomId: newMatchmakingRoom.id });
+
+    // Clear the queue
+    matchmakingQueue.players = [];
+
+    // Add room and broadcast updates
+    rooms.push(newMatchmakingRoom);
+    console.log(`📢 Emitting updateUsers to all clients`);
+    io.emit("updateUsers", connectedUsers);
+    console.log(`📢 Emitting updateRooms to all clients`);
+    io.emit("updateRooms", rooms);
+
+    // Start the game
+    console.log(`🎮 Starting matchmaking game with ${realPlayerCount} real players and ${cpuCount} CPUs`);
+    startGame(newMatchmakingRoom, newMatchmakingRoom.id);
+  };
+
+  // ============================================================================
+  // END MATCHMAKING QUEUE SYSTEM
+  // ============================================================================
+
+  // ============================================================================
+  // GAME MANAGEMENT FUNCTIONS (Used by both matchmaking and connection handlers)
+  // ============================================================================
+
+  const updateGame = (game) => {
+    if (game.hasEnded || game.showingRoleReveal) {
+      console.log("the game has ended or showing role reveal");
+      return;
+    }
+
+    if (game.isPaused) {
+      setTimeout(() => updateGame(game), 1000);
+      return;
+    }
+
+    if (game.winningTeam === null) {
+      game.timeCounter -= 1000;
+
+      // ✅ Process CPU moves on the server
+      processCPUMoves(game, rooms, io);
+
+      if (game.timeCounter === 0) {
+        if (game.timeOfTheDay === "nighttime")
+          toNightTimeAftermath(game);
+        else if (game.timeOfTheDay === "nighttimeAftermath")
+          toDayTime(game);
+        else if (game.timeOfTheDay === "daytime")
+          toVoteTime(game);
+        else if (game.timeOfTheDay === "votetime")
+          toVoteTimeAftermath(game);
+        else if (game.timeOfTheDay === "votetimeAftermath")
+          toNightTime(game);
+
+        game.playersList = assignRandomSecondToEachCPU(
+          game.playersList
+        );
+      }
+    } else {
+      console.log("and the winner is...");
+      console.log(game.winningTeam.name);
+      game.isPaused = true;
+    }
+
+    const roomIndex = rooms.findIndex((r) => r.id === game.id);
+    if (roomIndex !== -1) {
+      rooms[roomIndex] = game;
+      io.to(game.id).emit("updateGame", game);
+
+      // ✅ single call, handles ALL animations safely
+      processAnimationQueue(game, io, game.id, rooms);
+    }
+
+    setTimeout(() => updateGame(game), 1000);
+  };
+
+  const startGame = (roomToJoin, roomId) => {
+    // Pass user preferences (including preferred roles) to initialization
+    const userPreferences = roomToJoin.usersInTheRoom.map(user => ({
+      username: user.username,
+      preferredRole: user.preferredRole || null
+    }));
+
+    const playersList = initializePlayersList(
+      roomToJoin.nbrOfPlayers,
+      roomToJoin.selectedRoles,
+      roomToJoin.usersInTheRoom,
+      roomToJoin.nbrCPUPlayers,
+      roomToJoin.isQuickGame,
+      userPreferences // Pass preferences to initialization
+    );
+    roomToJoin = initializeGameObject(roomToJoin, playersList);
+    roomToJoin.playersList = assignRandomSecondToEachCPU(
+      roomToJoin.playersList
+    );
+
+    // Add a flag to indicate role reveal phase
+    roomToJoin.showingRoleReveal = true;
+
+    const roomIndex = rooms.findIndex((r) => r.id === roomId);
+    if (roomIndex !== -1) {
+      rooms[roomIndex] = roomToJoin;
+      io.emit("updateRooms", rooms);
+    }
+
+    connectedUsers.forEach((user, index) => {
+      if (roomToJoin.usersInTheRoom.some((u) => u.username === user.username)) {
+        connectedUsers[index] = {
+          ...connectedUsers[index],
+          isPlaying: true,
+        };
+      }
+    });
+
+    io.emit("updateUsers", connectedUsers);
+
+    // Emit launchRoom with the flag set
+    console.log(`🚀 Emitting launchRoom to room ${roomId} with ${roomToJoin.usersInTheRoom.length} users`);
+    io.to(roomId).emit("launchRoom", roomToJoin);
+
+    // After 11 seconds, start the actual game countdown
+    setTimeout(() => {
+      let game = rooms.find((r) => r.id === roomId);
+      if (game) {
+        game.showingRoleReveal = false;
+        const gameRoomIndex = rooms.findIndex((r) => r.id === roomId);
+        if (gameRoomIndex !== -1) {
+          rooms[gameRoomIndex] = game;
+        }
+        io.to(roomId).emit("updateGame", game);
+        updateGame(game);
+      }
+    }, 10000);
+  };
+
+  // ============================================================================
+  // END GAME MANAGEMENT FUNCTIONS
+  // ============================================================================
+
   io.on("connection", (socket) => {
     console.log("New client connected:", socket.id);
     const token = socket.handshake.query.token;
@@ -80,112 +336,6 @@ const socketManager = (io, rooms, connectedUsers) => {
       io.emit("updateUsers", connectedUsers);
       io.emit("updateRooms", rooms);
     });
-
-    const updateGame = (game) => {
-      if (game.hasEnded || game.showingRoleReveal) {
-        console.log("the game has ended or showing role reveal");
-        return;
-      }
-
-      if (game.isPaused) {
-        setTimeout(() => updateGame(game), 1000);
-        return;
-      }
-
-      if (game.winningTeam === null) {
-        game.timeCounter -= 1000;
-
-        // ✅ Process CPU moves on the server
-        processCPUMoves(game, rooms, io);
-
-        if (game.timeCounter === 0) {
-          if (game.timeOfTheDay === "nighttime")
-            toNightTimeAftermath(game);
-          else if (game.timeOfTheDay === "nighttimeAftermath")
-            toDayTime(game);
-          else if (game.timeOfTheDay === "daytime")
-            toVoteTime(game);
-          else if (game.timeOfTheDay === "votetime")
-            toVoteTimeAftermath(game);
-          else if (game.timeOfTheDay === "votetimeAftermath")
-            toNightTime(game);
-
-          game.playersList = assignRandomSecondToEachCPU(
-            game.playersList
-          );
-        }
-      } else {
-        console.log("and the winner is...");
-        console.log(game.winningTeam.name);
-        game.isPaused = true;
-      }
-
-      const roomIndex = rooms.findIndex((r) => r.id === game.id);
-      if (roomIndex !== -1) {
-        rooms[roomIndex] = game;
-        io.to(game.id).emit("updateGame", game);
-
-        // ✅ single call, handles ALL animations safely
-        processAnimationQueue(game, io, game.id, rooms);
-      }
-
-      setTimeout(() => updateGame(game), 1000);
-    };
-
-    const startGame = (roomToJoin, roomId) => {
-      // Pass user preferences (including preferred roles) to initialization
-      const userPreferences = roomToJoin.usersInTheRoom.map(user => ({
-        username: user.username,
-        preferredRole: user.preferredRole || null
-      }));
-
-      const playersList = initializePlayersList(
-        roomToJoin.nbrOfPlayers,
-        roomToJoin.selectedRoles,
-        roomToJoin.usersInTheRoom,
-        roomToJoin.nbrCPUPlayers,
-        roomToJoin.isQuickGame,
-        userPreferences // Pass preferences to initialization
-      );
-      roomToJoin = initializeGameObject(roomToJoin, playersList);
-      roomToJoin.playersList = assignRandomSecondToEachCPU(
-        roomToJoin.playersList
-      );
-
-      // Add a flag to indicate role reveal phase
-      roomToJoin.showingRoleReveal = true;
-
-      const roomIndex = rooms.findIndex((r) => r.id === roomId);
-      if (roomIndex !== -1) {
-        rooms[roomIndex] = roomToJoin;
-        io.emit("updateRooms", rooms);
-      }
-
-      connectedUsers.forEach((user, index) => {
-        if (roomToJoin.usersInTheRoom.some((u) => u.username === user.username)) {
-          connectedUsers[index] = {
-            ...connectedUsers[index],
-            isPlaying: true,
-          };
-        }
-      });
-
-      io.emit("updateUsers", connectedUsers);
-
-      // Emit launchRoom with the flag set
-      io.to(roomId).emit("launchRoom", roomToJoin);
-
-      // After 11 seconds, start the actual game countdown
-      setTimeout(() => {
-        let game = rooms.find((r) => r.id === roomId);
-        if (game) {
-          game.showingRoleReveal = false;
-          rooms[roomIndex] = game;
-          io.to(roomId).emit("updateGame", game);
-          updateGame(game);
-        }
-      }, 10000);
-    };
 
     socket.on("createRoom", (newRoom) => {
       rooms.push(newRoom);
@@ -272,6 +422,69 @@ const socketManager = (io, rooms, connectedUsers) => {
       // launch game
       startGame(newQuickRoom, newQuickRoom.id);
     });
+
+    // ============================================================================
+    // MATCHMAKING SOCKET EVENTS
+    // ============================================================================
+
+    socket.on("joinMatchmaking", (username, socketId, avatar) => {
+      console.log(`${username} joined matchmaking queue`);
+
+      // Check if player already in queue
+      const alreadyInQueue = matchmakingQueue.players.find(p => p.username === username);
+      if (alreadyInQueue) {
+        console.log(`${username} is already in matchmaking queue`);
+        return;
+      }
+
+      // Add player to queue
+      matchmakingQueue.players.push({
+        username,
+        socketId,
+        avatar,
+        joinedAt: Date.now()
+      });
+
+      // Check for instant start (16 players)
+      if (matchmakingQueue.players.length >= 16) {
+        console.log("16 players reached - starting game immediately!");
+        startMatchmakingGame();
+        return;
+      }
+
+      // Start countdown if 2+ players and not already counting
+      if (matchmakingQueue.players.length >= 2 && !matchmakingQueue.isCountdownActive) {
+        console.log("2+ players in queue - starting 20s countdown");
+        startMatchmakingCountdown();
+      }
+
+      // Broadcast updated status to all players in queue
+      broadcastMatchmakingStatus();
+    });
+
+    socket.on("leaveMatchmaking", (username) => {
+      console.log(`${username} left matchmaking queue`);
+
+      // Remove player from queue
+      const initialLength = matchmakingQueue.players.length;
+      matchmakingQueue.players = matchmakingQueue.players.filter(p => p.username !== username);
+
+      // If player was actually in queue
+      if (matchmakingQueue.players.length < initialLength) {
+        // Check if we should stop countdown (less than 2 players)
+        if (matchmakingQueue.players.length < 2) {
+          console.log("Less than 2 players - stopping countdown");
+          stopMatchmakingCountdown();
+        }
+
+        // Broadcast updated status
+        broadcastMatchmakingStatus();
+      }
+    });
+
+    // ============================================================================
+    // END MATCHMAKING SOCKET EVENTS
+    // ============================================================================
 
     socket.on(
       "updateUserGameState",
