@@ -179,25 +179,26 @@ The server implements complete logic for these roles:
 - 👩‍⚕️ **Doctor** - Heals one player per night
 - 🔫 **Gunner** - Can shoot during the day (limited bullets)
 - 👮‍♂️ **Jailer** - Arrests and can execute prisoners
-- 🏹 **Cupid** - Creates lovers at start of game
-- 👔 **Captain** - Vote counts double (revealed publicly)
+- 🏹 **Cupid** - Link two people together
+- 👔 **Captain** - Vote counts triple if reveals publicly his role
 - 👨 **Villager** - No special ability
 - 😈 **Cursed Villager** - Turns into wolf if targeted
 - 🪦 **Grave Robber** - Steals role from dead player
+- 🧙‍♀️ **Witch** - Has one heal and one poison potion
 
 **Wolf Team:**
 - 🐺 **Werewolf** - Votes to kill villagers at night
+- 🐺 **Alpha Werewolf** - Lead the wolves with night votes that counts 2
 - 🐺🔍 **Wolf Seer** - Reveals roles to wolf team
-- 🐺👶 **Junior Wolf** - Becomes wolf when adult wolves die
+- 🐺👶 **Baby Werewolf** - Can choose a target that will die if he dies
+- 😱 **Nightmare Wolf** - Haunts players with nightmares causing chaos
 
 **Solo Players:**
 - 🤡 **Fool** - Wins if voted out by village
-- 🔪 **Serial Killer** - Kills every night, immune to wolves
+- 🔪 **Serial Killer** - Kills every night
 - 🔥 **Arsonist (Pyro)** - Douses and burns players
-- 😱 **Nightmare** - Haunts players causing chaos
+- 😱 **Ghost Lady** - Can't die at night and "visits" other players
 
-**Special Roles:**
-- 🧙‍♀️ **Witch** - Has one heal and one poison potion
 
 ## 🔧 Configuration
 

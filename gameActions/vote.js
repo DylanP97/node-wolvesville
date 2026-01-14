@@ -2,6 +2,8 @@ const { getCurrentTime } = require("../lib/utils");
 const { bittenByWolves } = require("./cursed");
 const { killSelectedPlayer } = require("./general");
 const { checkIfIsInLove } = require("./cupid");
+const { redirectAttackToVisited } = require("./ghostLady");
+const { executeRevengeKill } = require("./babyWerewolf");
 
 exports.voteAgainst = (selectedPlayerId, playersList, nbr, playerId, selectedPlayerName) => {
   console.log("voteAgainst called");
@@ -135,6 +137,25 @@ exports.handleVote = (playersList, messagesHistory, winningTeam, gameStartTime, 
           msg: `{serverContent.action.message.werewolfReveal}${mostVotedAgainstPlayer.name}{serverContent.action.message.wasWerewolf}`,
         });
       }
+
+      // Check for Baby Werewolf revenge kill
+      messagesHistory.unshift({
+        time: getCurrentTime(gameStartTime),
+        author: "",
+        msg: `DEV -- [Village Vote] Checking Baby Wolf: role=${mostVotedAgainstPlayer.role.name}, revengeTargetId=${mostVotedAgainstPlayer.revengeTargetId || "NOT SET"}`,
+      });
+      if (mostVotedAgainstPlayer.role.name === "Baby Werewolf" && mostVotedAgainstPlayer.revengeTargetId) {
+        const revengeResult = executeRevengeKill(
+          playersList,
+          mostVotedAgainstPlayer.id,
+          messagesHistory,
+          gameStartTime,
+          animationQueue
+        );
+        playersList = revengeResult.playersList;
+        messagesHistory = revengeResult.messagesHistory;
+      }
+
       // Check if the dead player was in love and kill their partner
       // Use the player object before death to check isInLove property
       const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory, gameStartTime, animationQueue);
@@ -235,32 +256,106 @@ exports.handleWolvesVote = (playersList, messagesHistory, gameStartTime, animati
         msg: `DEV -- cursedBittenByWolves`,
       });
     } else {
-      playersList = killSelectedPlayer(mostVotedAgainstPlayer.id, playersList);
-      const wolvesKillMessage = `{serverContent.action.message.wolvesMurdered} ${mostVotedAgainstPlayer.name}!`;
-      messagesHistory.unshift({
-        time: getCurrentTime(gameStartTime),
-        author: "",
-        msg: wolvesKillMessage,
-      });
+      // Check for Ghost Lady protection mechanics
+      const ghostLady = playersList.find(
+        (p) => p.role && p.role.name === "Ghost Lady" && p.isAlive && p.visitingPlayerId !== undefined
+      );
 
-      shouldTriggerWolvesAnimation = true; // Trigger animation when wolves kill
-
-      // Queue wolves animation BEFORE checking for lover suicide
-      // This ensures wolves animation plays first, then lover suicide animation
-      // Store the message directly to avoid getting the werewolf reveal message instead
-      if (animationQueue) {
-        animationQueue.push({
-          type: "wolvesAte",
-          duration: 3000,
-          message: wolvesKillMessage,
+      // Case 1: Ghost Lady is the wolf target - redirect to visited player
+      if (ghostLady && mostVotedAgainstPlayer.id === ghostLady.id) {
+        const visitedPlayer = playersList.find((p) => p.id === ghostLady.visitingPlayerId);
+        messagesHistory.unshift({
+          time: getCurrentTime(gameStartTime),
+          author: "",
+          msg: `DEV -- Ghost Lady was attacked by wolves while visiting ${visitedPlayer?.name}. Redirecting attack to visited player.`,
         });
-      }
 
-      // Check if the dead player was in love and kill their partner
-      // Use the player object before death to check isInLove property
-      const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory, gameStartTime, animationQueue);
-      playersList = result.playersList;
-      messagesHistory = result.messagesHistory;
+        const redirectResult = redirectAttackToVisited(
+          playersList,
+          ghostLady.id,
+          messagesHistory,
+          gameStartTime,
+          animationQueue
+        );
+        playersList = redirectResult.playersList;
+        messagesHistory = redirectResult.messagesHistory;
+
+        if (redirectResult.redirected) {
+          shouldTriggerWolvesAnimation = true;
+          messagesHistory.unshift({
+            time: getCurrentTime(gameStartTime),
+            author: "",
+            msg: `DEV -- Attack redirected! ${visitedPlayer?.name} died instead of Ghost Lady.`,
+          });
+          // Check for lover death
+          if (visitedPlayer) {
+            const result = checkIfIsInLove(visitedPlayer, playersList, messagesHistory, gameStartTime, animationQueue);
+            playersList = result.playersList;
+            messagesHistory = result.messagesHistory;
+          }
+        }
+      }
+      // Normal kill
+      else {
+        playersList = killSelectedPlayer(mostVotedAgainstPlayer.id, playersList);
+        const wolvesKillMessage = `{serverContent.action.message.wolvesMurdered} ${mostVotedAgainstPlayer.name}!`;
+        messagesHistory.unshift({
+          time: getCurrentTime(gameStartTime),
+          author: "",
+          msg: wolvesKillMessage,
+        });
+
+        shouldTriggerWolvesAnimation = true; // Trigger animation when wolves kill
+
+        // Queue wolves animation BEFORE checking for lover suicide
+        // This ensures wolves animation plays first, then lover suicide animation
+        // Store the message directly to avoid getting the werewolf reveal message instead
+        if (animationQueue) {
+          animationQueue.push({
+            type: "wolvesAte",
+            duration: 3000,
+            message: wolvesKillMessage,
+          });
+        }
+
+        // Check for Baby Werewolf revenge kill
+        messagesHistory.unshift({
+          time: getCurrentTime(gameStartTime),
+          author: "",
+          msg: `DEV -- Checking Baby Wolf revenge: role=${mostVotedAgainstPlayer.role.name}, revengeTargetId=${mostVotedAgainstPlayer.revengeTargetId || "NOT SET"}`,
+        });
+        if (mostVotedAgainstPlayer.role.name === "Baby Werewolf" && mostVotedAgainstPlayer.revengeTargetId) {
+          const revengeTarget = playersList.find(p => p.id === mostVotedAgainstPlayer.revengeTargetId);
+          // Debug: check if Baby Wolf in updated playersList still has revengeTargetId
+          const babyWolfInList = playersList.find(p => p.id === mostVotedAgainstPlayer.id);
+          messagesHistory.unshift({
+            time: getCurrentTime(gameStartTime),
+            author: "",
+            msg: `DEV -- Baby Wolf in playersList: revengeTargetId=${babyWolfInList?.revengeTargetId || "NOT SET"}`,
+          });
+          messagesHistory.unshift({
+            time: getCurrentTime(gameStartTime),
+            author: "",
+            msg: `DEV -- Baby Werewolf ${mostVotedAgainstPlayer.name} died! Executing revenge on ${revengeTarget?.name || "unknown"}`,
+          });
+
+          const revengeResult = executeRevengeKill(
+            playersList,
+            mostVotedAgainstPlayer.id,
+            messagesHistory,
+            gameStartTime,
+            animationQueue
+          );
+          playersList = revengeResult.playersList;
+          messagesHistory = revengeResult.messagesHistory;
+        }
+
+        // Check if the dead player was in love and kill their partner
+        // Use the player object before death to check isInLove property
+        const result = checkIfIsInLove(mostVotedAgainstPlayer, playersList, messagesHistory, gameStartTime, animationQueue);
+        playersList = result.playersList;
+        messagesHistory = result.messagesHistory;
+      }
     }
   }
 

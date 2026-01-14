@@ -13,6 +13,7 @@ const {
     handlePoisonPotion,
     handleHeal,
     handleExecutePrisoner,
+    handleGhostVisit,
 } = require('../lib/gameActions');
 
 const {
@@ -35,14 +36,17 @@ exports.performNightAction = (playersList, cpu, gameId, dayCount, rooms, io) => 
         case "Nightmare Werewolf":
             performWolfVote(playersList, cpu, gameId, rooms, io);
             break;
-        case "Junior Werewolf":
-            let juniorWolftarget = getRandomAlivePlayer(playersList, true, false, cpu.id);
-            if (juniorWolftarget) {
-                handleChooseJuniorWolfDeathRevenge({
-                    type: "chooseJuniorWolfDeathRevenge",
-                    juniorWolfId: cpu.id,
-                    selectedPlayerId: juniorWolftarget.id,
-                }, gameId, rooms, io);
+        case "Baby Werewolf":
+            // Baby Werewolf chooses a revenge target (non-wolf player) if not already chosen
+            if (cpu.role.canPerform1.nbrLeftToPerform > 0 && !cpu.revengeTargetId) {
+                let babyWolfTarget = getRandomAlivePlayer(playersList, true, false, cpu.id);
+                if (babyWolfTarget) {
+                    handleChooseJuniorWolfDeathRevenge({
+                        type: "chooseJuniorWolfDeathRevenge",
+                        babyWolfId: cpu.id,
+                        selectedPlayerId: babyWolfTarget.id,
+                    }, gameId, rooms, io);
+                }
             }
             performWolfVote(playersList, cpu, gameId, rooms, io);
             break;
@@ -211,6 +215,20 @@ exports.performNightAction = (playersList, cpu, gameId, dayCount, rooms, io) => 
             }
             break;
 
+        case "Ghost Lady":
+            // Ghost Lady visits a player at night (cannot visit if already linked)
+            if (cpu.isLinkedWithGhostLady === undefined && Math.random() < 0.7) {
+                let playerToVisit = getRandomAlivePlayer(playersList, false, false, cpu.id);
+                if (playerToVisit) {
+                    handleGhostVisit({
+                        type: "ghostVisit",
+                        ghostLadyId: cpu.id,
+                        selectedPlayerId: playerToVisit.id,
+                        selectedPlayerName: playerToVisit.name,
+                    }, gameId, rooms, io);
+                }
+            }
+            break;
 
         // Add more roles as needed
         default:

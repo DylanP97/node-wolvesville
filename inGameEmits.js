@@ -1,4 +1,4 @@
-const { checkForWinner, handleAssertDuty, handleRegisterAction, handlePutNightmare, handleExecutePrisoner, handleAddWolfVote, handleChooseJuniorWolfDeathRevenge, handleUncoverRole, handleRevealPlayer, handleShootBullet, handlePourGasoline, handleBurnThemDown, handleRevive, handleHeal, handleProtectPotion, handlePoisonPotion, handleLootGrave, handleAddVote } = require("./lib/gameActions");
+const { checkForWinner, handleAssertDuty, handleRegisterAction, handlePutNightmare, handleExecutePrisoner, handleAddWolfVote, handleChooseJuniorWolfDeathRevenge, handleUncoverRole, handleRevealPlayer, handleShootBullet, handlePourGasoline, handleBurnThemDown, handleRevive, handleHeal, handleProtectPotion, handlePoisonPotion, handleLootGrave, handleAddVote, handleGhostVisit } = require("./lib/gameActions");
 const { getCurrentTime } = require("./lib/utils");
 const { setRooms } = require("./lib/gameSetup");
 
@@ -31,6 +31,10 @@ const inGameEmits = (io, socket, rooms) => {
 
     socket.on("chooseJuniorWolfDeathRevenge", (action, roomId) => {
         handleChooseJuniorWolfDeathRevenge(action, roomId, rooms, io);
+    });
+
+    socket.on("ghostVisit", (action, roomId) => {
+        handleGhostVisit(action, roomId, rooms, io);
     });
 
     socket.on("uncoverRole", (action, roomId) => {

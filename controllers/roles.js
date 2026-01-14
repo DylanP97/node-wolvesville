@@ -38,39 +38,96 @@ exports.findRoleByName = async (roleName) => {
   }
 };
 
+/**
+ * Helper function to shuffle an array (Fisher-Yates algorithm)
+ */
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
+/**
+ * Generate balanced roles for quick game / matchmaking
+ * Total: 16 players
+ * - 3-4 solo players (randomly chosen)
+ * - 4-5 werewolves (randomly chosen)
+ * - Rest villagers (to fill remaining slots)
+ */
 exports.getRolesDataForQuickGame = async () => {
-  const rolesWantedForQuickGame = [
-    "Witch",//
-    "Gunner",//
-    "Seer",//
-    "Captain",//
-    "Cupid",//
-    "Serial Killer",//
-    "Fool",//
-    "Alpha Werewolf",//
-    "Wolf Seer",
-    "Medium",//
-    "Jailer",//
-    "Grave Robber",//
-    "Doctor",//
-    "Cursed",//
-    "Arsonist",
-    "Nightmare Werewolf",
+  // Define role pools by team
+  const soloRoles = ["Serial Killer", "Fool", "Arsonist", "Ghost Lady"];
+  const wolfRoles = ["Alpha Werewolf", "Wolf Seer", "Nightmare Werewolf", "Baby Werewolf", "Classic Werewolf"];
+  const villageRoles = [
+    "Witch", "Gunner", "Seer", "Captain", "Cupid", "Medium",
+    "Jailer", "Grave Robber", "Doctor", "Cursed", "Villager"
   ];
 
+  const totalPlayers = 16;
+
+  // Randomly decide counts (within balanced ranges)
+  const soloCount = Math.random() < 0.5 ? 3 : 4; // 3 or 4 solo
+  const wolfCount = Math.random() < 0.5 ? 4 : 5; // 4 or 5 wolves
+  const villageCount = totalPlayers - soloCount - wolfCount; // Rest are villagers
+
+  console.log(`Quick game balance: ${soloCount} solo, ${wolfCount} wolves, ${villageCount} village`);
+
+  // Shuffle and pick roles from each pool
+  const selectedSoloNames = shuffleArray(soloRoles).slice(0, soloCount);
+  const selectedWolfNames = shuffleArray(wolfRoles).slice(0, wolfCount);
+
+  // For village, we might need duplicates (e.g., multiple Villagers)
+  let selectedVillageNames = [];
+  const shuffledVillage = shuffleArray(villageRoles);
+
+  for (let i = 0; i < villageCount; i++) {
+    // Cycle through shuffled village roles, allowing duplicates of "Villager"
+    const roleIndex = i % shuffledVillage.length;
+    const roleName = shuffledVillage[roleIndex];
+
+    // Only allow duplicate Villagers, otherwise pick next unique
+    if (selectedVillageNames.includes(roleName) && roleName !== "Villager") {
+      // Find a role not yet selected (or default to Villager)
+      const available = shuffledVillage.find(r => !selectedVillageNames.includes(r) || r === "Villager");
+      selectedVillageNames.push(available || "Villager");
+    } else {
+      selectedVillageNames.push(roleName);
+    }
+  }
+
+  // Combine all selected role names
+  const allSelectedNames = [...selectedSoloNames, ...selectedWolfNames, ...selectedVillageNames];
+
+  console.log("Selected roles:", allSelectedNames);
+
+  // Fetch role data from database
   let quickGameRolesData = [];
 
   try {
-    const rolePromises = rolesWantedForQuickGame.map(async (roleName) => {
-      const role = await this.findRoleByName(roleName); // Use the helper function here
-      const plainRole = JSON.parse(JSON.stringify(role)); // Fully detach from Mongoose
-      return plainRole;
+    const rolePromises = allSelectedNames.map(async (roleName) => {
+      const role = await this.findRoleByName(roleName);
+      return role;
     });
 
     quickGameRolesData = await Promise.all(rolePromises);
   } catch (error) {
-    console.log(error);
+    console.log("Error fetching roles:", error);
   }
 
-  return quickGameRolesData.filter((role) => role); // Remove any undefined roles
+  // Remove any undefined roles (in case some weren't found in DB)
+  quickGameRolesData = quickGameRolesData.filter((role) => role);
+
+  // Safeguard: if we don't have enough roles, fill with Villager
+  if (quickGameRolesData.length < totalPlayers) {
+    console.log(`Warning: Only got ${quickGameRolesData.length} roles, filling with Villagers`);
+    const villagerRole = await this.findRoleByName("Villager");
+    while (quickGameRolesData.length < totalPlayers && villagerRole) {
+      quickGameRolesData.push({ ...villagerRole });
+    }
+  }
+
+  return quickGameRolesData;
 };
