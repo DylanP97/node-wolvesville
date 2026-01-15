@@ -6,7 +6,6 @@ const { redirectAttackToVisited } = require("./ghostLady");
 const { executeRevengeKill } = require("./babyWerewolf");
 
 exports.voteAgainst = (selectedPlayerId, playersList, nbr, playerId, selectedPlayerName) => {
-  console.log("voteAgainst called");
   playersList = playersList.map((player) => {
     if (player.id === selectedPlayerId) {
       return {
@@ -175,12 +174,16 @@ exports.handleVote = (playersList, messagesHistory, winningTeam, gameStartTime, 
 
 exports.handleWolvesVote = (playersList, messagesHistory, gameStartTime, animationQueue = null) => {
 
-
   const wolves = playersList.filter((ply) => ply.role.team === "Werewolves");
   const mostVotedAgainstPlayer =
     this.findPlayerWithMostWolvesVotes(playersList);
 
   let shouldTriggerWolvesAnimation = false; // Flag for animation
+
+  // Track stats for role actions
+  let wolfKills = 0;
+  let doctorSaves = 0;
+  let witchSaves = 0;
 
   if (!mostVotedAgainstPlayer) {
     if (wolves.length > 0) {
@@ -232,6 +235,7 @@ exports.handleWolvesVote = (playersList, messagesHistory, gameStartTime, animati
         author: "",
         msg: `DEV -- ${mostVotedAgainstPlayer.name} was healed by doctor from wolf attack`,
       });
+      doctorSaves++;
     } else if (wasProtected) {
       messagesHistory.unshift({
         time: getCurrentTime(gameStartTime),
@@ -243,6 +247,7 @@ exports.handleWolvesVote = (playersList, messagesHistory, gameStartTime, animati
         author: "",
         msg: `DEV -- ${mostVotedAgainstPlayer.name} was protected by witch from wolf attack`,
       });
+      witchSaves++;
     } else if (mostVotedAgainstPlayer.role.name === "Cursed") {
       playersList = bittenByWolves(playersList, mostVotedAgainstPlayer.id, wolves[0].wolvesKnowledge);
       messagesHistory.unshift({
@@ -306,6 +311,7 @@ exports.handleWolvesVote = (playersList, messagesHistory, gameStartTime, animati
         });
 
         shouldTriggerWolvesAnimation = true; // Trigger animation when wolves kill
+        wolfKills++;
 
         // Queue wolves animation BEFORE checking for lover suicide
         // This ensures wolves animation plays first, then lover suicide animation
@@ -368,5 +374,8 @@ exports.handleWolvesVote = (playersList, messagesHistory, gameStartTime, animati
     playersListEdit,
     messagesHistoryEdit,
     shouldTriggerWolvesAnimation,
+    wolfKills,
+    doctorSaves,
+    witchSaves,
   };
 };

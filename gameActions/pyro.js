@@ -96,5 +96,10 @@ exports.burnThemDown = (game, pyroId) => {
         return ply;
     });
 
+    // Track arsonist burns
+    if (game.roleActions) {
+        game.roleActions.arsonistBurns += fireVictims;
+    }
+
     return game;
 }

@@ -17,6 +17,9 @@ const { getRolesDataForQuickGame } = require("./controllers/roles");
 const cleanupOldRooms = require("./lib/cleanupOldRooms");
 const inGameEmits = require("./inGameEmits");
 const { processCPUMoves } = require('./CPULogic/cpuManager');
+const { recordGameStats } = require('./lib/recordGameStats');
+
+const MAX_GAME_CYCLES = 14; // Maximum day/night cycles before stalemate
 
 const socketManager = (io, rooms, connectedUsers) => {
 
@@ -182,6 +185,22 @@ const socketManager = (io, rooms, connectedUsers) => {
     }
 
     if (game.winningTeam === null) {
+      // Check for stalemate (max cycles reached)
+      if (game.dayCount >= MAX_GAME_CYCLES) {
+        console.log(`⚠️ Stalemate detected! Game reached ${MAX_GAME_CYCLES} cycles without a winner.`);
+        game.isStalemate = true;
+        game.winningTeam = {
+          name: "Stalemate",
+          image: null,
+          winnerPlayers: []
+        };
+        game.isPaused = true;
+
+        // Record stats for stalemate
+        recordGameStats(game, false);
+        return;
+      }
+
       game.timeCounter -= 1000;
 
       // ✅ Process CPU moves on the server
@@ -207,6 +226,12 @@ const socketManager = (io, rooms, connectedUsers) => {
       console.log("and the winner is...");
       console.log(game.winningTeam.name);
       game.isPaused = true;
+
+      // Record game stats when there's a winner
+      if (!game.statsRecorded) {
+        game.statsRecorded = true;
+        recordGameStats(game, false);
+      }
     }
 
     const roomIndex = rooms.findIndex((r) => r.id === game.id);
@@ -265,19 +290,82 @@ const socketManager = (io, rooms, connectedUsers) => {
     console.log(`🚀 Emitting launchRoom to room ${roomId} with ${roomToJoin.usersInTheRoom.length} users`);
     io.to(roomId).emit("launchRoom", roomToJoin);
 
-    // After 11 seconds, start the actual game countdown
+    // After 10 seconds, transition to roles overview phase
     setTimeout(() => {
       let game = rooms.find((r) => r.id === roomId);
       if (game) {
         game.showingRoleReveal = false;
+        game.showingRolesOverview = true;
+        game.readyPlayers = []; // Track who clicked ready
+        game.rolesOverviewCountdown = 100; // 100 seconds countdown
+
+        // Get unique roles in the game for display
+        const uniqueRoles = [];
+        const seenRoles = new Set();
+        game.playersList.forEach(player => {
+          if (player.role && !seenRoles.has(player.role.name)) {
+            seenRoles.add(player.role.name);
+            uniqueRoles.push(player.role);
+          }
+        });
+        game.rolesInGame = uniqueRoles;
+
         const gameRoomIndex = rooms.findIndex((r) => r.id === roomId);
         if (gameRoomIndex !== -1) {
           rooms[gameRoomIndex] = game;
         }
+
+        console.log(`📋 Showing roles overview for room ${roomId}`);
         io.to(roomId).emit("updateGame", game);
-        updateGame(game);
+
+        // Start countdown timer for auto-start
+        startRolesOverviewCountdown(roomId);
       }
     }, 10000);
+  };
+
+  // Roles overview countdown - auto-starts game after 100 seconds
+  const startRolesOverviewCountdown = (roomId) => {
+    const countdownInterval = setInterval(() => {
+      let game = rooms.find((r) => r.id === roomId);
+      if (!game || !game.showingRolesOverview) {
+        clearInterval(countdownInterval);
+        return;
+      }
+
+      game.rolesOverviewCountdown -= 1;
+
+      // Emit countdown update every 10 seconds or when low
+      if (game.rolesOverviewCountdown <= 10 || game.rolesOverviewCountdown % 10 === 0) {
+        io.to(roomId).emit("rolesOverviewCountdown", game.rolesOverviewCountdown);
+      }
+
+      // Auto-start when countdown reaches 0
+      if (game.rolesOverviewCountdown <= 0) {
+        clearInterval(countdownInterval);
+        startGameAfterRolesOverview(roomId);
+      }
+    }, 1000);
+  };
+
+  // Start actual game after roles overview
+  const startGameAfterRolesOverview = (roomId) => {
+    let game = rooms.find((r) => r.id === roomId);
+    if (game && game.showingRolesOverview) {
+      game.showingRolesOverview = false;
+      delete game.readyPlayers;
+      delete game.rolesOverviewCountdown;
+      delete game.rolesInGame;
+
+      const gameRoomIndex = rooms.findIndex((r) => r.id === roomId);
+      if (gameRoomIndex !== -1) {
+        rooms[gameRoomIndex] = game;
+      }
+
+      console.log(`🎮 Starting game for room ${roomId} after roles overview`);
+      io.to(roomId).emit("updateGame", game);
+      updateGame(game);
+    }
   };
 
   // ============================================================================
@@ -421,6 +509,39 @@ const socketManager = (io, rooms, connectedUsers) => {
       io.emit("updateRooms", rooms);
       // launch game
       startGame(newQuickRoom, newQuickRoom.id);
+    });
+
+    // ============================================================================
+    // ROLES OVERVIEW - PLAYER READY EVENT
+    // ============================================================================
+
+    socket.on("playerReady", (roomId, playerName) => {
+      let game = rooms.find((r) => r.id === roomId);
+      if (!game || !game.showingRolesOverview) return;
+
+      // Add player to ready list if not already there
+      if (!game.readyPlayers.includes(playerName)) {
+        game.readyPlayers.push(playerName);
+        console.log(`✅ ${playerName} is ready (${game.readyPlayers.length}/${game.usersInTheRoom.length})`);
+
+        // Update the game state
+        const gameRoomIndex = rooms.findIndex((r) => r.id === roomId);
+        if (gameRoomIndex !== -1) {
+          rooms[gameRoomIndex] = game;
+        }
+
+        // Emit updated ready status to all players in room
+        io.to(roomId).emit("playerReadyUpdate", {
+          readyPlayers: game.readyPlayers,
+          totalRealPlayers: game.usersInTheRoom.length
+        });
+
+        // Check if all real players are ready
+        if (game.readyPlayers.length >= game.usersInTheRoom.length) {
+          console.log(`🎉 All players ready in room ${roomId}! Starting game...`);
+          startGameAfterRolesOverview(roomId);
+        }
+      }
     });
 
     // ============================================================================

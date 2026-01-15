@@ -11,6 +11,16 @@ exports.processReviveAtDayStart = (playersList, messagesHistory, registeredActio
       const medium = playersList.find((p) => p.id === action.playerId);
       
       if (deadPlayer && medium && !deadPlayer.isAlive) {
+        // Check if grave was looted - can't revive looted graves
+        if (deadPlayer.graveLooted) {
+          messagesHistory.unshift({
+            time: getCurrentTime(gameStartTime),
+            author: "",
+            msg: `{serverContent.action.message.reviveFailedGraveLooted}`,
+          });
+          return; // Skip this revive
+        }
+
         // Revive the player - just set isAlive to true, all other data is preserved
         playersList = playersList.map((player) => {
           if (player.id === action.selectedPlayerId) {
@@ -34,7 +44,7 @@ exports.processReviveAtDayStart = (playersList, messagesHistory, registeredActio
           }
           return player;
         });
-        
+
         // Add revive message
         messagesHistory.unshift({
           time: getCurrentTime(gameStartTime),

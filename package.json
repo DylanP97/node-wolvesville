@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "simulate": "node tools/balanceSimulator.js",
+    "simulate:100": "node tools/balanceSimulator.js --games=100"
   },
   "keywords": [],
   "author": "",
