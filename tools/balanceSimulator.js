@@ -285,18 +285,20 @@ async function runSimulation() {
 
     // Display role action stats
     if (dbStats.roleActions) {
+      const ra = dbStats.roleActions;
+      const avg = ra.avgPerGame;
       console.log('\n-------------------------------------');
-      console.log('🎭 Role Action Stats (All-time):');
-      console.log(`  Wolf Kills:          ${dbStats.roleActions.wolfKills.toString().padStart(5)} total (${dbStats.roleActions.avgPerGame.wolfKills} per game)`);
-      console.log(`  SK Kills:            ${dbStats.roleActions.skKills.toString().padStart(5)} total (${dbStats.roleActions.avgPerGame.skKills} per game)`);
-      console.log(`  Doctor Saves:        ${dbStats.roleActions.doctorSaves.toString().padStart(5)} total (${dbStats.roleActions.avgPerGame.doctorSaves} per game)`);
-      console.log(`  Witch Saves:         ${dbStats.roleActions.witchSaves.toString().padStart(5)} total`);
-      console.log(`  Witch Kills:         ${dbStats.roleActions.witchKills.toString().padStart(5)} total`);
-      console.log(`  Seer Reveals:        ${dbStats.roleActions.seerReveals.toString().padStart(5)} total`);
-      console.log(`  Gunner Kills:        ${dbStats.roleActions.gunnerKills.toString().padStart(5)} total`);
-      console.log(`  Jailer Executions:   ${dbStats.roleActions.jailerExecutions.toString().padStart(5)} total`);
-      console.log(`  Arsonist Burns:      ${dbStats.roleActions.arsonistBurns.toString().padStart(5)} total`);
-      console.log(`  Medium Revives:      ${dbStats.roleActions.mediumRevives.toString().padStart(5)} total`);
+      console.log('🎭 Role Action Stats (per game average):');
+      console.log(`  Wolf Kills:          ${avg.wolfKills.padStart(5)} per game  (${ra.wolfKills} total)`);
+      console.log(`  SK Kills:            ${avg.skKills.padStart(5)} per game  (${ra.skKills} total)`);
+      console.log(`  Doctor Saves:        ${avg.doctorSaves.padStart(5)} per game  (${ra.doctorSaves} total)`);
+      console.log(`  Witch Saves:         ${avg.witchSaves.padStart(5)} per game  (${ra.witchSaves} total)`);
+      console.log(`  Witch Kills:         ${avg.witchKills.padStart(5)} per game  (${ra.witchKills} total)`);
+      console.log(`  Seer Reveals:        ${avg.seerReveals.padStart(5)} per game  (${ra.seerReveals} total)`);
+      console.log(`  Gunner Kills:        ${avg.gunnerKills.padStart(5)} per game  (${ra.gunnerKills} total)`);
+      console.log(`  Jailer Executions:   ${avg.jailerExecutions.padStart(5)} per game  (${ra.jailerExecutions} total)`);
+      console.log(`  Arsonist Burns:      ${avg.arsonistBurns.padStart(5)} per game  (${ra.arsonistBurns} total)`);
+      console.log(`  Medium Revives:      ${avg.mediumRevives.padStart(5)} per game  (${ra.mediumRevives} total)`);
     }
   }
 

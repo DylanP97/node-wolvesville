@@ -18,8 +18,16 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
+    required: function() {
+      // Password required only if not using OAuth
+      return !this.googleId;
+    },
     maxLength: 250,
+  },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true, // Allows null/undefined values while maintaining uniqueness
   },
   avatar: {
     type: Object,
@@ -50,6 +58,16 @@ let passwordRegExp = new RegExp(
 );
 
 userSchema.pre("save", async function (next) {
+  // Skip password hashing for Google OAuth users (they don't have passwords)
+  if (this.googleId && !this.password) {
+    return next();
+  }
+
+  // Only hash if password is modified (or new)
+  if (!this.isModified('password')) {
+    return next();
+  }
+
   if (passwordRegExp.test(this.password)) {
     let hash = await bcrypt.hash(this.password, 10);
     this.password = hash;

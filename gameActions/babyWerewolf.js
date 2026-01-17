@@ -35,25 +35,25 @@ exports.executeRevengeKill = (playersList, babyWolfId, messagesHistory, startTim
   const babyWolf = playersList.find((p) => p.id === babyWolfId);
 
   // Debug logging
-  console.log("executeRevengeKill called with babyWolfId:", babyWolfId);
-  console.log("Found babyWolf:", babyWolf ? `${babyWolf.name} (revengeTargetId: ${babyWolf.revengeTargetId})` : "NOT FOUND");
+  // console.log("executeRevengeKill called with babyWolfId:", babyWolfId);
+  // console.log("Found babyWolf:", babyWolf ? `${babyWolf.name} (revengeTargetId: ${babyWolf.revengeTargetId})` : "NOT FOUND");
 
   if (!babyWolf || !babyWolf.revengeTargetId) {
-    console.log("ABORT: babyWolf not found or no revengeTargetId");
+    // console.log("ABORT: babyWolf not found or no revengeTargetId");
     return { playersList, messagesHistory };
   }
 
   const targetId = babyWolf.revengeTargetId;
   const target = playersList.find((p) => p.id === targetId);
 
-  console.log("Target found:", target ? `${target.name} (isAlive: ${target.isAlive})` : "NOT FOUND");
+  // console.log("Target found:", target ? `${target.name} (isAlive: ${target.isAlive})` : "NOT FOUND");
 
   if (!target || !target.isAlive) {
-    console.log("ABORT: target not found or not alive");
+    // console.log("ABORT: target not found or not alive");
     return { playersList, messagesHistory };
   }
 
-  console.log("EXECUTING REVENGE KILL on", target.name);
+  // console.log("EXECUTING REVENGE KILL on", target.name);
 
   // Kill the target
   playersList = playersList.map((player) => {

@@ -198,13 +198,27 @@ function werewolfStrategy(votablePlayers, teammates, votingState, revealedFool, 
 function villageStrategy(votablePlayers, votingState, revealedFool, cpuRole) {  // Change to regular function
     if (revealedFool && Math.random() < 0.9) return null;
 
-    if (votingState.leadingVotes >= 2 && Math.random() < 0.5) {
+    // Bandwagon on leading player (2+ votes)
+    if (votingState.leadingVotes >= 2 && Math.random() < 0.6) {
         if (!(votingState.leadingPlayer.isRevealed && votingState.leadingPlayer.role.name === "Fool")) {
             return votingState.leadingPlayer;
         }
     }
 
-    if (Math.random() < 0.7) return null; // villagers often abstain
+    // Early vote to start bandwagon (even with 1 vote) - 40% chance
+    if (votingState.leadingVotes === 1 && Math.random() < 0.4) {
+        if (!(votingState.leadingPlayer.isRevealed && votingState.leadingPlayer.role.name === "Fool")) {
+            return votingState.leadingPlayer;
+        }
+    }
+
+    if (Math.random() < 0.5) return null; // villagers sometimes abstain (reduced from 70%)
+
+    // Vote for unrevealed players (unknown = potential threat)
+    const unrevealed = votablePlayers.filter(p => !p.isRevealed);
+    if (unrevealed.length > 0 && Math.random() < 0.7) {
+        return unrevealed[Math.floor(Math.random() * unrevealed.length)];
+    }
 
     const safe = votablePlayers.filter(p => !(p.isRevealed && p.role.name === "Fool"));
     return safe.length > 0 ? safe[Math.floor(Math.random() * safe.length)] : null;
@@ -212,11 +226,28 @@ function villageStrategy(votablePlayers, votingState, revealedFool, cpuRole) {  
 
 function soloStrategy(votablePlayers, votingState, cpuRole) {  // Change to regular function
     if (cpuRole === "Fool") {
-        // Fool acts erratically
-        if (Math.random() < 0.4) {
-            return votablePlayers[Math.floor(Math.random() * votablePlayers.length)];
+        // Fool tries to look suspicious to get voted out
+        // Strategy: Act like a wolf to attract village votes
+
+        // 80% chance to vote (Fool is aggressive to stand out)
+        if (Math.random() < 0.2) return null;
+
+        // Priority 1: Vote against revealed villagers (looks very suspicious)
+        const revealedVillagers = votablePlayers.filter(p =>
+            p.isRevealed && p.role.team === "Village"
+        );
+        if (revealedVillagers.length > 0 && Math.random() < 0.7) {
+            return revealedVillagers[Math.floor(Math.random() * revealedVillagers.length)];
         }
-        return null;
+
+        // Priority 2: Vote against players with NO votes (starts suspicious bandwagons)
+        const noVotes = votablePlayers.filter(p => p.voteAgainst === 0);
+        if (noVotes.length > 0 && Math.random() < 0.5) {
+            return noVotes[Math.floor(Math.random() * noVotes.length)];
+        }
+
+        // Priority 3: Random vote
+        return votablePlayers[Math.floor(Math.random() * votablePlayers.length)];
     }
 
     // Other solos (SK, Arsonist) blend in

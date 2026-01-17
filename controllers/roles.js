@@ -55,7 +55,7 @@ const shuffleArray = (array) => {
  * Total: 16 players
  * - 3-4 solo players (randomly chosen, NO duplicates)
  * - 3-4 werewolves (randomly chosen, NO duplicates)
- * - Rest villagers (to fill remaining slots, only Villager can duplicate)
+ * - Rest villagers (to fill remaining slots, ALL unique - no duplicates)
  */
 exports.getRolesDataForQuickGame = async () => {
   // Define role pools by team
@@ -70,7 +70,7 @@ exports.getRolesDataForQuickGame = async () => {
 
   // Randomly decide counts (within balanced ranges)
   const soloCount = Math.random() < 0.5 ? 3 : 4; // 3 or 4 solo
-  const wolfCount = Math.random() < 0.5 ? 3 : 4; // 3 or 4 wolves (changed from 4-5)
+  const wolfCount = Math.random() < 0.5 ? 3 : 4; // 3 or 4 wolves
   const villageCount = totalPlayers - soloCount - wolfCount; // Rest are villagers
 
   console.log(`Quick game balance: ${soloCount} solo, ${wolfCount} wolves, ${villageCount} village`);
@@ -78,46 +78,25 @@ exports.getRolesDataForQuickGame = async () => {
   // Shuffle and pick UNIQUE roles from each pool (no duplicates allowed)
   const shuffledSolo = shuffleArray(soloRoles);
   const shuffledWolf = shuffleArray(wolfRoles);
+  const shuffledVillage = shuffleArray(villageRoles);
 
   // Take only up to available unique roles
   const selectedSoloNames = shuffledSolo.slice(0, Math.min(soloCount, shuffledSolo.length));
   const selectedWolfNames = shuffledWolf.slice(0, Math.min(wolfCount, shuffledWolf.length));
 
-  // For village, we might need more roles than unique available
-  // Only "Villager" can be duplicated
-  let selectedVillageNames = [];
-  const shuffledVillage = shuffleArray(villageRoles);
-
-  for (let i = 0; i < villageCount; i++) {
-    // Find next available unique role, or use Villager as fallback
-    const availableRole = shuffledVillage.find(r =>
-      !selectedVillageNames.includes(r) || r === "Villager"
-    );
-    selectedVillageNames.push(availableRole || "Villager");
-  }
+  // For village, take unique roles only (no duplicates at all)
+  const selectedVillageNames = shuffledVillage.slice(0, Math.min(villageCount, shuffledVillage.length));
 
   // Combine all selected role names
   const allSelectedNames = [...selectedSoloNames, ...selectedWolfNames, ...selectedVillageNames];
 
-  // Final safety check: ensure no duplicates except Villager
-  const seen = new Set();
-  const deduped = [];
-  for (const name of allSelectedNames) {
-    if (name === "Villager" || !seen.has(name)) {
-      seen.add(name);
-      deduped.push(name);
-    } else {
-      deduped.push("Villager"); // Replace duplicate with Villager
-    }
-  }
-
-  console.log("Selected roles:", deduped);
+  console.log("Selected roles:", allSelectedNames);
 
   // Fetch role data from database
   let quickGameRolesData = [];
 
   try {
-    const rolePromises = deduped.map(async (roleName) => {
+    const rolePromises = allSelectedNames.map(async (roleName) => {
       const role = await this.findRoleByName(roleName);
       return role;
     });
@@ -130,13 +109,9 @@ exports.getRolesDataForQuickGame = async () => {
   // Remove any undefined roles (in case some weren't found in DB)
   quickGameRolesData = quickGameRolesData.filter((role) => role);
 
-  // Safeguard: if we don't have enough roles, fill with Villager
-  if (quickGameRolesData.length < totalPlayers) {
-    console.log(`Warning: Only got ${quickGameRolesData.length} roles, filling with Villagers`);
-    const villagerRole = await this.findRoleByName("Villager");
-    while (quickGameRolesData.length < totalPlayers && villagerRole) {
-      quickGameRolesData.push({ ...villagerRole });
-    }
+  // Log warning if we don't have exactly the expected number of roles
+  if (quickGameRolesData.length !== totalPlayers) {
+    console.log(`Warning: Got ${quickGameRolesData.length} roles instead of ${totalPlayers}`);
   }
 
   return quickGameRolesData;

@@ -92,9 +92,10 @@ exports.performWolfVote = (playersList, cpu, gameId, rooms, io) => {
     }
 
     // PRIORITY 5: Avoid revealed solo roles early game (let them create chaos)
-    // Solo roles (Serial Killer, Arsonist) hurt the village too
+    // Solo roles (Serial Killer, Arsonist, Fool) hurt the village too
+    // Fool especially: if they get voted out, village wastes a vote
     const revealedSoloRoles = revealedTargets.filter(p =>
-        ["Serial Killer", "Arsonist"].includes(p.role.name)
+        ["Serial Killer", "Arsonist", "Fool"].includes(p.role.name)
     );
 
     // Get game progress (day count would help here, but we can estimate from alive count)

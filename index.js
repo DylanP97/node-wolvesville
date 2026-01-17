@@ -5,6 +5,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const cookies = require("cookie-parser");
+const passport = require("./config/passport");
 
 const userRoutes = require("./routes/user");
 const rolesRoutes = require("./routes/roles");
@@ -45,6 +46,7 @@ const app = express();
 app.use(cookies());
 
 app.use(cors(corsOptions));
+app.use(passport.initialize());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
