@@ -5,8 +5,8 @@ const { getCurrentTime } = require("../lib/utils");
 exports.shootBullet = (playersList, selectedPlayerId, gunnerId, messagesHistory = [], gameStartTime, animationQueue = null) => {
   // Get the player before they're killed to check isInLove
   const shotPlayer = playersList.find((p) => p.id === selectedPlayerId);
-  
-  playersList = killSelectedPlayer(selectedPlayerId, playersList);
+
+  playersList = killSelectedPlayer(selectedPlayerId, playersList, "gunshot");
 
   playersList = playersList.map((player) => {
     if (player.id === gunnerId) {

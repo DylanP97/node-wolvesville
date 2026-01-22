@@ -45,7 +45,7 @@ exports.redirectAttackToVisited = (playersList, ghostLadyId, messagesHistory, st
       return {
         ...player,
         isAlive: false,
-        killedBy: "Paranormal Accident",
+        causeOfDeath: "ghost",
       };
     }
     // Clear Ghost Lady's visit state

@@ -46,7 +46,7 @@ exports.murder = (playersList, messagesHistory, killedBySK, action, gameStartTim
     killedBySK += 1;
     let additionalMsg = `{serverContent.action.message.numberOfSKKills} ${killedBySK}`;
     const skKillMessage = `💀🔪 ${attackedPlayer.name} {serverContent.action.message.killedBySK} ${killedBySK > 2 ? additionalMsg : ""} `;
-    playersList = killSelectedPlayer(action.selectedPlayerId, playersList);
+    playersList = killSelectedPlayer(action.selectedPlayerId, playersList, "murder");
     messagesHistory.unshift({
       time: getCurrentTime(gameStartTime),
       author: "",

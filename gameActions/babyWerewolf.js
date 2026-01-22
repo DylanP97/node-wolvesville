@@ -61,7 +61,7 @@ exports.executeRevengeKill = (playersList, babyWolfId, messagesHistory, startTim
       return {
         ...player,
         isAlive: false,
-        killedBy: "Baby Werewolf Revenge",
+        causeOfDeath: "baby_wolf_revenge",
       };
     }
     return player;

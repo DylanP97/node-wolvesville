@@ -109,7 +109,7 @@ exports.handleVote = (playersList, messagesHistory, winningTeam, gameStartTime, 
       msg: `{serverContent.villageVote.outcome.null}`,
     });
   } else {
-    playersList = killSelectedPlayer(mostVotedAgainstPlayer.id, playersList);
+    playersList = killSelectedPlayer(mostVotedAgainstPlayer.id, playersList, "lynch");
     if (mostVotedAgainstPlayer.role.name === "Fool") {
       messagesHistory.unshift({
         time: getCurrentTime(gameStartTime),
@@ -302,7 +302,7 @@ exports.handleWolvesVote = (playersList, messagesHistory, gameStartTime, animati
       }
       // Normal kill
       else {
-        playersList = killSelectedPlayer(mostVotedAgainstPlayer.id, playersList);
+        playersList = killSelectedPlayer(mostVotedAgainstPlayer.id, playersList, "wolves");
         const wolvesKillMessage = `{serverContent.action.message.wolvesMurdered} ${mostVotedAgainstPlayer.name}!`;
         messagesHistory.unshift({
           time: getCurrentTime(gameStartTime),

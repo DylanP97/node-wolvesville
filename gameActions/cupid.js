@@ -39,7 +39,7 @@ exports.checkIfIsInLove = (deadPlayer, playersList, messagesHistory, gameStartTi
     const partner = playersList.find((ply) => ply.id === deadPlayer.loverPartnerId);
     
     if (partner && partner.isAlive) {
-      playersList = killSelectedPlayer(partner.id, playersList);
+      playersList = killSelectedPlayer(partner.id, playersList, "lover_suicide");
       const loverSuicideMessage = `💀💔 ${partner.name} {serverContent.action.message.dieWithLover} ${deadPlayer.name}!`;
       messagesHistory.unshift({
         time: getCurrentTime(gameStartTime),

@@ -74,6 +74,7 @@ exports.usePoisonPotion = (playersList, selectedPlayerId, witchId, messagesHisto
         ...player,
         isAlive: false,
         isRevealed: player.isRevealed ? true : player.role.team === "Werewolves",
+        causeOfDeath: "poison",
       };
     }
     return player;

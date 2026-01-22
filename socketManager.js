@@ -355,7 +355,7 @@ const socketManager = (io, rooms, connectedUsers) => {
       game.showingRolesOverview = false;
       delete game.readyPlayers;
       delete game.rolesOverviewCountdown;
-      delete game.rolesInGame;
+      // Keep game.rolesInGame for the Players/Roles menu during gameplay
 
       const gameRoomIndex = rooms.findIndex((r) => r.id === roomId);
       if (gameRoomIndex !== -1) {

@@ -83,6 +83,7 @@ exports.burnThemDown = (game, pyroId) => {
                     isRevealed: ply.isRevealed ? true : ply.role.team === "Werewolves",
                     isMarkedWithGasoline: false,
                     wasBurnedByArsonist: true, // flag for front-end animation
+                    causeOfDeath: "fire",
                 };
             }
 

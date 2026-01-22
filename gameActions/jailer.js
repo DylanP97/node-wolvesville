@@ -34,6 +34,7 @@ exports.executePrisoner = (playersList, messagesHistory = [], gameStartTime, ani
         isUnderArrest: false,
         isAlive: false,
         isRevealed: ply.isRevealed ? true : ply.role.team === "Werewolves",
+        causeOfDeath: "execution",
       };
     } else if (ply.role.name === "Jailer") {
       return {
